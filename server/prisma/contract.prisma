@@ -19,6 +19,7 @@ model User {
   createdAt    DateTime  @default(now())
 
   bookings     Booking[]
+  waitlists Waitlist[]
 }
 
 model Session {
@@ -28,6 +29,7 @@ model Session {
   createdAt DateTime @default(now())
 
   bookings Booking[]
+  waitlists Waitlist[]
 }
 
 model Booking {
@@ -39,4 +41,16 @@ model Booking {
 
   user      User          @relation(fields: [userId], references: [id])
   session   Session       @relation(fields: [sessionId], references: [id])
+}
+
+model Waitlist {
+  id        Uuid     @id @default(uuid())
+  userId    Uuid
+  sessionId Uuid
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+  session   Session  @relation(fields: [sessionId], references: [id])
+
+  @@unique([userId, sessionId])
 }

@@ -15,6 +15,10 @@
     "User": {
       "model": "User",
       "namespace": "public"
+    },
+    "Waitlist": {
+      "model": "Waitlist",
+      "namespace": "public"
     }
   },
   "domain": {
@@ -195,6 +199,21 @@
                   "model": "Booking",
                   "namespace": "public"
                 }
+              },
+              "waitlists": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "sessionId"
+                  ]
+                },
+                "to": {
+                  "model": "Waitlist",
+                  "namespace": "public"
+                }
               }
             },
             "storage": {
@@ -282,6 +301,21 @@
                   "model": "Booking",
                   "namespace": "public"
                 }
+              },
+              "waitlists": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
+                },
+                "to": {
+                  "model": "Waitlist",
+                  "namespace": "public"
+                }
               }
             },
             "storage": {
@@ -307,6 +341,90 @@
               },
               "namespaceId": "public",
               "table": "User"
+            }
+          },
+          "Waitlist": {
+            "fields": {
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/uuid@1",
+                  "kind": "scalar"
+                }
+              },
+              "sessionId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/uuid@1",
+                  "kind": "scalar"
+                }
+              },
+              "userId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/uuid@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "session": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "sessionId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Session",
+                  "namespace": "public"
+                }
+              },
+              "user": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "userId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "sessionId": {
+                  "column": "sessionId"
+                },
+                "userId": {
+                  "column": "userId"
+                }
+              },
+              "namespaceId": "public",
+              "table": "Waitlist"
             }
           }
         }
@@ -534,6 +652,99 @@
                   ]
                 }
               ]
+            },
+            "Waitlist": {
+              "columns": {
+                "createdAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/uuid@1",
+                  "nativeType": "uuid",
+                  "nullable": false
+                },
+                "sessionId": {
+                  "codecId": "pg/uuid@1",
+                  "nativeType": "uuid",
+                  "nullable": false
+                },
+                "userId": {
+                  "codecId": "pg/uuid@1",
+                  "nativeType": "uuid",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "source": {
+                    "columns": [
+                      "userId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Waitlist"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "User"
+                  }
+                },
+                {
+                  "source": {
+                    "columns": [
+                      "sessionId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Waitlist"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Session"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "sessionId"
+                  ],
+                  "name": "Waitlist_sessionId_idx_29f415d4",
+                  "prefix": "Waitlist_sessionId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "userId"
+                  ],
+                  "name": "Waitlist_userId_idx_a489d58a",
+                  "prefix": "Waitlist_userId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "userId",
+                    "sessionId"
+                  ]
+                }
+              ]
             }
           },
           "valueSet": {
@@ -557,10 +768,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "54ca3c26121d17560543fb41f4f0825127021e0176128d293595c75338f32d35"
+    "storageHash": "0e7a5e84d22a13cfbed484c85a341ebd03a17be28821c4236e85e5d21e592a0c"
   },
   "execution": {
-    "executionHash": "ea03a7d65ebf26482e59442e2716ad7984dd454a38b03f941d68a54d1dc74661",
+    "executionHash": "2bd169cec40c4e6a2b16bb9b7df731812810cfcbd11d043f4f988067c0830d31",
     "mutations": {
       "defaults": [
         {
@@ -592,6 +803,17 @@
           },
           "ref": {
             "entry": "User",
+            "field": "id",
+            "namespace": "public"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "entry": "Waitlist",
             "field": "id",
             "namespace": "public"
           }
