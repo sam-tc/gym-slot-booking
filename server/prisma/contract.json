@@ -55,6 +55,20 @@
         "models": {
           "Booking": {
             "fields": {
+              "checkInCodeHash": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "checkedInAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
               "createdAt": {
                 "nullable": false,
                 "type": {
@@ -133,6 +147,12 @@
             },
             "storage": {
               "fields": {
+                "checkInCodeHash": {
+                  "column": "checkInCodeHash"
+                },
+                "checkedInAt": {
+                  "column": "checkedInAt"
+                },
                 "createdAt": {
                   "column": "createdAt"
                 },
@@ -445,6 +465,16 @@
                 }
               ],
               "columns": {
+                "checkInCodeHash": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "checkedInAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "nativeType": "timestamptz",
+                  "nullable": true
+                },
                 "createdAt": {
                   "codecId": "pg/timestamptz-temporal@1",
                   "default": {
@@ -582,7 +612,13 @@
                   "id"
                 ]
               },
-              "uniques": []
+              "uniques": [
+                {
+                  "columns": [
+                    "startTime"
+                  ]
+                }
+              ]
             },
             "User": {
               "checks": [
@@ -768,7 +804,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "0e7a5e84d22a13cfbed484c85a341ebd03a17be28821c4236e85e5d21e592a0c"
+    "storageHash": "3e3cdb3dee67ebc197329b38552e59bfc1d17e808c5a67c5b97e4452d98b3494"
   },
   "execution": {
     "executionHash": "2bd169cec40c4e6a2b16bb9b7df731812810cfcbd11d043f4f988067c0830d31",

@@ -1,0 +1,128 @@
+[
+  {
+    "id": "column.public.Booking.checkInCodeHash",
+    "label": "Add column \"checkInCodeHash\" to \"Booking\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "checkInCodeHash",
+        "table": "Booking"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"checkInCodeHash\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "Booking",
+          "checkInCodeHash"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"checkInCodeHash\"",
+        "sql": "ALTER TABLE \"public\".\"Booking\" ADD COLUMN \"checkInCodeHash\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"checkInCodeHash\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "Booking",
+          "checkInCodeHash"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.Booking.checkedInAt",
+    "label": "Add column \"checkedInAt\" to \"Booking\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "checkedInAt",
+        "table": "Booking"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"checkedInAt\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "Booking",
+          "checkedInAt"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"checkedInAt\"",
+        "sql": "ALTER TABLE \"public\".\"Booking\" ADD COLUMN \"checkedInAt\" timestamptz"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"checkedInAt\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "Booking",
+          "checkedInAt"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.Session.Session_startTime_key",
+    "label": "Add unique constraint on \"Session\" (startTime)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "Session_startTime_key",
+        "table": "Session"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"Session_startTime_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Session_startTime_key",
+          "public",
+          "\"public\".\"Session\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"Session_startTime_key\"",
+        "sql": "ALTER TABLE \"public\".\"Session\" ADD CONSTRAINT \"Session_startTime_key\" UNIQUE (\"startTime\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"Session_startTime_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Session_startTime_key",
+          "public",
+          "\"public\".\"Session\""
+        ]
+      }
+    ]
+  }
+]
