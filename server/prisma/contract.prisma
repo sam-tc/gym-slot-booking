@@ -13,3 +13,10 @@ model User {
   role         UserRole  @default(MEMBER)
   createdAt    DateTime  @default(now())
 }
+
+model Session {
+  id        Uuid     @id @default(uuid())
+  startTime DateTime
+  capacity  Int      @default(20)
+  createdAt DateTime @default(now())
+}
