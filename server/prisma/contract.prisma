@@ -5,6 +5,11 @@ enum UserRole {
   ADMIN
 }
 
+enum BookingStatus {
+  BOOKED
+  CANCELLED
+}
+
 model User {
   id           Uuid      @id @default(uuid())
   name         String
@@ -12,6 +17,8 @@ model User {
   passwordHash String
   role         UserRole  @default(MEMBER)
   createdAt    DateTime  @default(now())
+
+  bookings     Booking[]
 }
 
 model Session {
@@ -19,4 +26,17 @@ model Session {
   startTime DateTime
   capacity  Int      @default(20)
   createdAt DateTime @default(now())
+
+  bookings Booking[]
+}
+
+model Booking {
+  id        Uuid          @id @default(uuid())
+  userId    Uuid
+  sessionId Uuid
+  status    BookingStatus @default(BOOKED)
+  createdAt DateTime      @default(now())
+
+  user      User          @relation(fields: [userId], references: [id])
+  session   Session       @relation(fields: [sessionId], references: [id])
 }
