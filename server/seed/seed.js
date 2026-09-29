@@ -79,10 +79,12 @@ async function seed() {
     const allUsers = await db.orm.public.User.all();
 
     const members = allUsers.filter(
-        (user) => user.role === 'MEMBER'
+        (user) =>
+            user.role === 'MEMBER' &&
+            /^member(1[0-9]|20|[1-9])@example\.com$/.test(user.email)
     );
 
-    for (const member of members.slice(0, 20)) {
+    for (const member of members) {
         const existingBookings = await db.orm.public.Booking.all();
 
         const existingBooking = existingBookings.find(
