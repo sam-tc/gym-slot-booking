@@ -40,21 +40,29 @@ app.get('/health/db', async (req, res, next) => {
 });
 
 app.use((error, req, res, next) => {
-    console.error(error);
-
     if (res.headersSent) {
         return next(error);
     }
 
-    const status = Number.isInteger(error.status) && error.status >= 400 && error.status < 600
+    const status = Number.isInteger(error.status) &&
+        error.status >= 400 &&
+        error.status < 600
         ? error.status
         : 500;
+
+    if (status >= 500) {
+        console.error(error);
+    }
 
     res.status(status).json({
         error: status < 500 ? 'Invalid request body' : 'Internal server error',
     });
 });
 
-app.listen(PORT, () => {
-    console.log(`Server listening on port ${PORT}`);
-});
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`Server listening on port ${PORT}`);
+    });
+}
+
+module.exports = app;

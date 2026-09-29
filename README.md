@@ -80,4 +80,4 @@ Review the generated migration files before applying them to a shared database.
 
 ## Verification
 
-There is currently no automated test suite (`npm test` is a placeholder). A basic source check is `node --check` on the changed client and server JavaScript files. API and check-in paths can be exercised against a disposable PostgreSQL database or a test fixture.
+Run the API and check-in regression tests with `cd server && npm test`. They exercise the HTTP routes with an isolated in-memory database fixture and do not write to PostgreSQL. A basic source check is `node --check` on the changed client and server JavaScript files; `npx prisma migration check` validates the committed migration graph without a database connection.
