@@ -40,62 +40,46 @@ if (authForm) {
     });
 
     authForm.addEventListener('submit', async (event) => {
-    event.preventDefault();
+        event.preventDefault();
 
-    const name = document.getElementById('name').value.trim();
-    const email = document.getElementById('email').value.trim();
-    const password = document.getElementById('password').value;
+        const name = document.getElementById('name').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const formMessage = document.getElementById('formMessage');
 
-    const formMessage = document.getElementById('formMessage');
+        formMessage.textContent = 'Please wait...';
 
-    formMessage.textContent = 'Please wait...';
+        try {
+            const endpoint = isRegistering ? '/auth/register' : '/auth/login';
+            const body = isRegistering
+                ? { name, email, password }
+                : { email, password };
 
-    try {
-        const endpoint = isRegistering
-            ? '/auth/register'
-            : '/auth/login';
+            const response = await fetch(`${API_URL}${endpoint}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+            const data = await response.json().catch(() => ({}));
 
-        const body = isRegistering
-            ? { name, email, password }
-            : { email, password };
+            if (!response.ok) {
+                formMessage.textContent = data.error || 'Something went wrong.';
+                return;
+            }
 
-        const response = await fetch(`${API_URL}${endpoint}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(body),
-        });
+            if (isRegistering) {
+                formMessage.textContent = 'Registration successful. You can now log in.';
+                setMode(false);
+                authForm.reset();
+                return;
+            }
 
-        const data = await response.json().catch(() => ({}));
-
-        if (!response.ok) {
-            formMessage.textContent =
-                data.error || 'Something went wrong.';
-
-            return;
+            localStorage.setItem('token', data.token);
+            formMessage.textContent = 'Login successful!';
+            window.location.href = 'sessions.html';
+        } catch (error) {
+            console.error(error);
+            formMessage.textContent = 'Unable to connect to the server.';
         }
-
-        if (isRegistering) {
-            formMessage.textContent =
-                'Registration successful. You can now log in.';
-
-            setMode(false);
-            authForm.reset();
-
-            return;
-        }
-
-        localStorage.setItem('token', data.token);
-
-        formMessage.textContent = 'Login successful!';
-
-        window.location.href = 'sessions.html';
-    } catch (error) {
-        console.error(error);
-
-        formMessage.textContent =
-            'Unable to connect to the server.';
-    }
     });
 }
