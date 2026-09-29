@@ -1,15 +1,20 @@
 // The API is served by this app, so deployments use their own origin.
 const API_URL = `${window.location.origin}/api`;
 
-const loginTab = document.getElementById('loginTab');
-const registerTab = document.getElementById('registerTab');
-const nameField = document.getElementById('nameField');
 const authForm = document.getElementById('authForm');
-const submitButton = document.getElementById('submitButton');
 
 let isRegistering = false;
 
 function setMode(registerMode) {
+    const loginTab = document.getElementById('loginTab');
+    const registerTab = document.getElementById('registerTab');
+    const nameField = document.getElementById('nameField');
+    const submitButton = document.getElementById('submitButton');
+
+    if (!authForm || !loginTab || !registerTab || !nameField || !submitButton) {
+        return;
+    }
+
     isRegistering = registerMode;
 
     nameField.classList.toggle('hidden', !isRegistering);
@@ -25,15 +30,16 @@ function setMode(registerMode) {
         isRegistering ? 'new-password' : 'current-password';
 }
 
-loginTab.addEventListener('click', () => {
-    setMode(false);
-});
+if (authForm) {
+    document.getElementById('loginTab')?.addEventListener('click', () => {
+        setMode(false);
+    });
 
-registerTab.addEventListener('click', () => {
-    setMode(true);
-});
+    document.getElementById('registerTab')?.addEventListener('click', () => {
+        setMode(true);
+    });
 
-authForm.addEventListener('submit', async (event) => {
+    authForm.addEventListener('submit', async (event) => {
     event.preventDefault();
 
     const name = document.getElementById('name').value.trim();
@@ -61,7 +67,7 @@ authForm.addEventListener('submit', async (event) => {
             body: JSON.stringify(body),
         });
 
-        const data = await response.json();
+        const data = await response.json().catch(() => ({}));
 
         if (!response.ok) {
             formMessage.textContent =
@@ -91,4 +97,5 @@ authForm.addEventListener('submit', async (event) => {
         formMessage.textContent =
             'Unable to connect to the server.';
     }
-});
+    });
+}
