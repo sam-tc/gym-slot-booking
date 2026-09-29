@@ -46,8 +46,12 @@ app.use((error, req, res, next) => {
         return next(error);
     }
 
-    res.status(500).json({
-        error: 'Internal server error',
+    const status = Number.isInteger(error.status) && error.status >= 400 && error.status < 600
+        ? error.status
+        : 500;
+
+    res.status(status).json({
+        error: status < 500 ? 'Invalid request body' : 'Internal server error',
     });
 });
 
