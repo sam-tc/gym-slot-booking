@@ -115,3 +115,223 @@ button {
 .hidden {
     display: none;
 }
+
+/* Main application layout */
+
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+    padding: 20px 32px;
+    background: white;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.topbar h1 {
+    margin: 0 0 4px;
+}
+
+.topbar p {
+    margin: 0;
+    color: #6b7280;
+}
+
+.topbar nav {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.topbar nav a,
+.topbar nav button {
+    border: 0;
+    background: transparent;
+    color: #374151;
+    text-decoration: none;
+    padding: 8px 10px;
+    border-radius: 6px;
+}
+
+.topbar nav a:hover,
+.topbar nav button:hover {
+    background: #f3f4f6;
+}
+
+.page-container {
+    width: min(1100px, 100%);
+    margin: 0 auto;
+    padding: 32px 24px;
+}
+
+.toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: end;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding: 20px;
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+}
+
+.toolbar label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.toolbar input {
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+}
+
+.toolbar button {
+    padding: 10px 14px;
+    border: 1px solid #d1d5db;
+    background: white;
+    border-radius: 8px;
+}
+
+.session-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 20px;
+}
+
+.session-card {
+    background: white;
+    padding: 24px;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+}
+
+.session-card h2 {
+    margin-top: 0;
+}
+
+.session-card p {
+    color: #4b5563;
+}
+
+.session-card .primary-button,
+.session-card .secondary-button {
+    width: 100%;
+    margin-top: 8px;
+}
+
+.secondary-button {
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 12px;
+    background: white;
+    color: #374151;
+    font-weight: 600;
+}
+
+.empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 48px 24px;
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+}
+
+@media (max-width: 700px) {
+    .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 20px;
+    }
+
+    .topbar nav {
+        flex-wrap: wrap;
+    }
+
+    .toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .page-container {
+        padding: 20px 16px;
+    }
+}
+
+/* Admin dashboard */
+
+.admin-section {
+    margin-bottom: 32px;
+    padding: 24px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+}
+
+.admin-section h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+.admin-form {
+    max-width: 500px;
+}
+
+.admin-form small {
+    display: block;
+    margin-top: 6px;
+    color: #6b7280;
+    line-height: 1.4;
+}
+
+.admin-form input {
+    width: 100%;
+    padding: 11px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+}
+
+.admin-result {
+    margin-top: 20px;
+    padding: 20px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+}
+
+.booking-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.booking-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 14px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+}
+
+.booking-row div {
+    display: grid;
+    gap: 4px;
+}
+
+.booking-row span {
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+@media (max-width: 700px) {
+    .booking-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

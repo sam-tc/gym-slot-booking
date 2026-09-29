@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header class="topbar">
+        <div>
+            <h1>Admin Dashboard</h1>
+            <p>Manage gym sessions and check-ins.</p>
+        </div>
+
+        <nav aria-label="Main navigation">
+            <a href="sessions.html">Sessions</a>
+            <a href="bookings.html">My Bookings</a>
+            <a href="admin.html">Admin</a>
+            <button id="logoutButton" type="button">Logout</button>
+        </nav>
+    </header>
+
+    <main class="page-container">
+
+        <div
+            id="pageMessage"
+            class="form-message"
+            role="status"
+            aria-live="polite"
+        ></div>
+
+        <section class="admin-section">
+            <h2>Create a session</h2>
+
+            <form id="createSessionForm" class="admin-form">
+                <div class="form-group">
+                    <label for="startTime">
+                        Session start time
+                    </label>
+
+                    <input
+                        id="startTime"
+                        type="datetime-local"
+                        required
+                    >
+
+                    <small>
+                        Sessions are one hour long and must start exactly
+                        on the hour.
+                    </small>
+                </div>
+
+                <button
+                    class="primary-button"
+                    type="submit"
+                >
+                    Create session
+                </button>
+            </form>
+        </section>
+
+        <section class="admin-section">
+            <h2>Sessions</h2>
+
+            <div
+                id="adminSessionsContainer"
+                class="session-grid"
+                aria-live="polite"
+            >
+                <p>Loading sessions...</p>
+            </div>
+        </section>
+
+        <section class="admin-section">
+            <h2>Check in a member</h2>
+
+            <form id="checkInForm" class="admin-form">
+                <div class="form-group">
+                    <label for="checkInCode">
+                        Check-in code
+                    </label>
+
+                    <input
+                        id="checkInCode"
+                        type="text"
+                        maxlength="6"
+                        autocomplete="off"
+                        required
+                    >
+                </div>
+
+                <button
+                    class="primary-button"
+                    type="submit"
+                >
+                    Check in member
+                </button>
+            </form>
+
+            <div
+                id="checkInResult"
+                class="admin-result"
+                aria-live="polite"
+            ></div>
+        </section>
+
+        <section class="admin-section">
+            <h2>Selected session bookings</h2>
+
+            <div
+                id="selectedSessionContainer"
+                aria-live="polite"
+            >
+                <p>Select a session above to view its bookings.</p>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="app.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>
