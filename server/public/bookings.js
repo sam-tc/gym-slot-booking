@@ -44,6 +44,8 @@ async function loadCurrentUser() {
         }
     } catch (error) {
         console.error(error);
+        localStorage.removeItem('token');
+        window.location.href = 'index.html';
     }
 }
 
