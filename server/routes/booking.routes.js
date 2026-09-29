@@ -401,7 +401,9 @@ router.get(
             const sessions =
                 await db.orm.public.Session.all();
 
-            const result = bookings.map((booking) => {
+            const result = [];
+
+            for (const booking of bookings) {
                 const session = sessions.find(
                     (existingSession) =>
                         existingSession.id ===
