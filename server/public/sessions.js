@@ -25,6 +25,7 @@ const adminLink =
 let currentSessions = [];
 let myBookings = [];
 let myWaitlists = [];
+const pendingSessionIds = new Set();
 
 async function apiRequest(endpoint, options = {}) {
     const response = await fetch(`${API_URL}${endpoint}`, {
@@ -54,6 +55,8 @@ async function loadCurrentUser() {
         }
     } catch (error) {
         console.error(error);
+        localStorage.removeItem('token');
+        window.location.href = 'index.html';
     }
 }
 
@@ -139,8 +142,9 @@ function renderSessions() {
                     <button
                         class="primary-button book-button"
                         data-session-id="${session.id}"
+                        ${pendingSessionIds.has(session.id) ? 'disabled' : ''}
                     >
-                        Book session
+                        ${pendingSessionIds.has(session.id) ? 'Booking...' : 'Book session'}
                     </button>
                 `;
             } else {
@@ -269,8 +273,7 @@ async function bookSession(sessionId, button) {
             session.seatsRemaining - 1
         );
 
-    button.disabled = true;
-
+    pendingSessionIds.add(sessionId);
     renderSessions();
 
     try {
@@ -296,6 +299,9 @@ async function bookSession(sessionId, button) {
 
         pageMessage.textContent =
             error.message;
+    } finally {
+        pendingSessionIds.delete(sessionId);
+        renderSessions();
     }
 }
 
