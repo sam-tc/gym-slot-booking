@@ -14,7 +14,42 @@ router.post('/', requireAuth, requireAdmin, async (req, res, next) => {
             });
         }
 
+        const start = Temporal.Instant.from(startTime);
+
+        if (
+            Temporal.Instant.compare(
+                start,
+                Temporal.Now.instant()
+            ) <= 0
+        ) {
+            return res.status(422).json({
+                error: 'Session must start in the future',
+            });
+        }
+
+        if (
+            start.toString().slice(14, 16) !== '00' ||
+            start.toString().slice(17, 19) !== '00'
+        ) {
+            return res.status(422).json({
+                error: 'Session must start on the hour',
+            });
+        }
+
         const db = await getDb();
+
+        const existingSessions = await db.orm.public.Session.all();
+
+        const existingSession = existingSessions.find(
+            (session) =>
+                session.startTime.toString() === startTime
+        );
+
+        if (existingSession) {
+            return res.status(409).json({
+                error: 'A session already exists at this start time',
+            });
+        }
 
         const session = await db.orm.public.Session.create({
             startTime: Temporal.Instant.from(startTime),
