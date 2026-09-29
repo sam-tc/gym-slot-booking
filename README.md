@@ -62,7 +62,7 @@ Run `npm run bootstrap:demo` after copying `server/.env.example` to `server/.env
 
 The app is configured for Vercel's Express support. The static website is in `server/public`, and `server/index.js` exports the Express app for Vercel Functions while still supporting `npm start` locally. In Vercel, import this GitHub repository and set **Root Directory** to `server`. Vercel serves `public/` through its CDN; Express serves the API. See [Vercel's Express guide](https://vercel.com/docs/frameworks/backend/express).
 
-The app needs a PostgreSQL database hosted separately. Create one with a provider such as [Neon](https://neon.tech/), then copy its pooled PostgreSQL connection string into Vercel as `DATABASE_URL`. Add `JWT_SECRET` as a long random secret. Keep both values private.
+The app needs a PostgreSQL database hosted separately. Create one with a provider such as [Neon](https://neon.tech/), then copy its pooled PostgreSQL connection string into Vercel as `DATABASE_URL`. Add `JWT_SECRET` and `CHECK_IN_SECRET` as long random secrets. Keep all three values private.
 
 Vercel runs `prisma db init` during each deployment, which initializes a new database before the app receives requests. It is deliberately a build step instead of a server-start step, because Vercel functions can start more than once. After deploying, open the Vercel URL and check `/health/db` to confirm the API can reach the database.
 
@@ -73,7 +73,7 @@ To create the administrator, demo members, and sample sessions, run this once fr
 - Register and log in as a member; the app stores a one-hour JWT in browser local storage.
 - Browse future hourly sessions, filter by the browser's local date, book available capacity, or join a full session's waitlist.
 - Cancel a booking before its session starts. The earliest waitlisted member is promoted when a place opens.
-- View booking history and the one-time check-in code shown after booking.
+- View booking history and the stable, booking-specific six-character check-in code.
 - Admins can create future sessions on the hour, view session bookings, and check in a booked member during the session hour using the six-character code.
 
 ## API overview
