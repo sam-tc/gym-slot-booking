@@ -49,6 +49,18 @@ router.post('/', requireAuth, async (req, res, next) => {
                 };
             }
 
+            if (
+                Temporal.Instant.compare(
+                    Temporal.Now.instant(),
+                    session.startTime
+                ) >= 0
+            ) {
+                return {
+                    error: 'Cannot book a session that has already started',
+                    status: 409,
+                };
+            }
+
             const dbBookings = await tx.orm.public.Booking.all();
 
             const existingBooking = dbBookings.find(
