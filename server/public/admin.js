@@ -147,6 +147,25 @@ async function createSession(event) {
 
     const startTime = input.value;
     const submitButton = createSessionForm.querySelector('button[type="submit"]');
+    const startTimeError = document.getElementById('startTimeError');
+
+    startTimeError.textContent = '';
+
+    if (!startTime) {
+        startTimeError.textContent = 'Choose a session start time.';
+        return;
+    }
+
+    const selectedDate = new Date(startTime);
+    if (!Number.isFinite(selectedDate.getTime())) {
+        startTimeError.textContent = 'Choose a valid date and time.';
+        return;
+    }
+
+    if (selectedDate.getMinutes() !== 0) {
+        startTimeError.textContent = 'Sessions must start exactly on the hour.';
+        return;
+    }
 
     pageMessage.textContent =
         'Creating session...';
@@ -176,6 +195,7 @@ async function createSession(event) {
 
         pageMessage.textContent =
             error.message;
+        startTimeError.textContent = error.message;
     } finally {
         submitButton.disabled = false;
     }
@@ -317,6 +337,7 @@ async function checkInMember(event) {
                 ${error.message}
             </p>
         `;
+        codeError.textContent = error.message;
     } finally {
         submitButton.disabled = false;
     }
