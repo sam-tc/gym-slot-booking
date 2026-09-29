@@ -25,6 +25,12 @@ app.get('/', (req, res) => {
     res.json({ message: 'Gym Slot Booking API is running' });
 });
 
+app.use('/api', (req, res) => {
+    res.status(404).json({
+        error: 'API route not found',
+    });
+});
+
 app.get('/health/db', async (req, res, next) => {
     try {
         const db = await getDb();
