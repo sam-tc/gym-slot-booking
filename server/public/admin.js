@@ -146,6 +146,7 @@ async function createSession(event) {
         document.getElementById('startTime');
 
     const startTime = input.value;
+    const submitButton = createSessionForm.querySelector('button[type="submit"]');
 
     pageMessage.textContent =
         'Creating session...';
@@ -155,6 +156,7 @@ async function createSession(event) {
 
         pageMessage.textContent =
             'Creating session...';
+        submitButton.disabled = true;
 
         await apiRequest('/sessions', {
             method: 'POST',
@@ -174,6 +176,8 @@ async function createSession(event) {
 
         pageMessage.textContent =
             error.message;
+    } finally {
+        submitButton.disabled = false;
     }
 }
 
@@ -258,9 +262,11 @@ async function checkInMember(event) {
         document.getElementById('checkInCode');
 
     const code = input.value.trim();
+    const submitButton = checkInForm.querySelector('button[type="submit"]');
 
     checkInResult.textContent =
         'Checking in member...';
+    submitButton.disabled = true;
 
     try {
         const data = await apiRequest(
@@ -311,6 +317,8 @@ async function checkInMember(event) {
                 ${error.message}
             </p>
         `;
+    } finally {
+        submitButton.disabled = false;
     }
 }
 
@@ -326,9 +334,15 @@ adminSessionsContainer.addEventListener(
             return;
         }
 
-        await loadSessionBookings(
-            button.dataset.sessionId
-        );
+        button.disabled = true;
+
+        try {
+            await loadSessionBookings(
+                button.dataset.sessionId
+            );
+        } finally {
+            button.disabled = false;
+        }
     }
 );
 
