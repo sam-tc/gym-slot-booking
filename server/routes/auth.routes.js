@@ -1,5 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const { getDb } = require('../db');
 
 const router = express.Router();
@@ -62,6 +63,76 @@ router.post('/register', async (req, res, next) => {
         });
 
         res.status(201).json({
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+});
+
+router.post('/login', async (req, res, next) => {
+    try {
+        const { email, password } = req.body;
+
+        if (
+            typeof email !== 'string' ||
+            typeof password !== 'string'
+        ) {
+            return res.status(400).json({
+                error: 'Email and password are required',
+            });
+        }
+
+        const normalizedEmail = email.trim().toLowerCase();
+
+        if (!normalizedEmail || !password) {
+            return res.status(400).json({
+                error: 'Email and password are required',
+            });
+        }
+
+        const db = await getDb();
+
+        const users = await db.orm.public.User.all();
+        const user = users.find(
+            (existingUser) => existingUser.email === normalizedEmail
+        );
+
+        if (!user) {
+            return res.status(401).json({
+                error: 'Invalid email or password',
+            });
+        }
+
+        const passwordMatches = await bcrypt.compare(
+            password,
+            user.passwordHash
+        );
+
+        if (!passwordMatches) {
+            return res.status(401).json({
+                error: 'Invalid email or password',
+            });
+        }
+
+        const token = jwt.sign(
+            {
+                userId: user.id,
+                role: user.role,
+            },
+            process.env.JWT_SECRET,
+            {
+                expiresIn: '1h',
+            }
+        );
+
+        res.json({
+            token,
             user: {
                 id: user.id,
                 name: user.name,
