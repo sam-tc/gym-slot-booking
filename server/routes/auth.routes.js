@@ -34,9 +34,9 @@ router.post('/register', async (req, res, next) => {
             });
         }
 
-        if (password.length < 8) {
+        if (password.length < 8 || password.length > 72) {
             return res.status(400).json({
-                error: 'Password must be at least 8 characters',
+                error: 'Password must be between 8 and 72 characters',
             });
         }
 
