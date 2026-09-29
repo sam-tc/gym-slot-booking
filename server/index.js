@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+require('./temporal');
 const { getDb } = require('./db');
 const authRoutes = require('./routes/auth.routes');
 const userRoutes = require('./routes/user.routes');
@@ -18,7 +19,7 @@ app.use('/api/sessions', sessionRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/waitlist', waitlistRoutes);
 
-app.use(express.static(path.join(__dirname, '../client')));
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/', (req, res) => {
     res.json({ message: 'Gym Slot Booking API is running' });

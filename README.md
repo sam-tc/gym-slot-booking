@@ -11,7 +11,7 @@ A small gym scheduling app with member booking, cancellation, waitlists, one-tim
 
 ## Run locally
 
-Requirements: Node.js with the Temporal API, npm, and PostgreSQL.
+Requirements: Node.js 24, npm, and PostgreSQL. The server loads a Temporal polyfill for runtimes that do not provide the API globally.
 
 1. Create a PostgreSQL database, then configure `server/.env` from `server/.env.example`:
 
@@ -40,11 +40,21 @@ Requirements: Node.js with the Temporal API, npm, and PostgreSQL.
 
 The optional `seed/seed.js` script creates a demo admin, 21 demo members, two sessions, and sample bookings using fixed credentials. It has no npm script and should only be used against a disposable development database; do not use these credentials in a shared or production environment.
 
-## Deploy a temporary demo on Render
+## Deploy a demo on Vercel
 
-The root `render.yaml` defines a Render web service and PostgreSQL database. In Render, create a Blueprint from this GitHub repository and review the resource plan before applying it. During setup, provide `ADMIN_NAME`, `ADMIN_EMAIL`, and a unique `ADMIN_PASSWORD` of at least 12 characters in Render's secret prompts. The service initializes the contract and creates that admin plus two upcoming sessions; it does not run the fixed-credential seed script.
+The app is configured for Vercel's Express support. The static website is in `server/public`, and `server/index.js` exports the Express app for Vercel Functions while still supporting `npm start` locally. In Vercel, import this GitHub repository and set **Root Directory** to `server`. Vercel serves `public/` through its CDN; Express serves the API. See [Vercel's Express guide](https://vercel.com/docs/frameworks/backend/express).
 
-This Blueprint uses free plans for a quick demo. Render's free web service can spin down when idle, and its free PostgreSQL database expires after 30 days; use only disposable test accounts and data. Upgrade the database to a paid plan before relying on it for persistent use. See [Render's free-instance limits](https://render.com/docs/free).
+The app needs a PostgreSQL database hosted separately. Create one with a provider such as [Neon](https://neon.tech/), then copy its pooled PostgreSQL connection string into Vercel as `DATABASE_URL`. Add `JWT_SECRET` as a long random secret, and set `ADMIN_NAME`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` (at least 12 characters). Keep these values private and use a unique admin password.
+
+Initialize the database once from a trusted computer with Node.js 24 and access to that database. In `server/`, set `DATABASE_URL` to the same pooled connection string and run:
+
+```sh
+npm ci
+npx prisma db init --db "$DATABASE_URL"
+ADMIN_NAME="Gym Admin" ADMIN_EMAIL="you@example.com" ADMIN_PASSWORD="your-unique-password" npm run bootstrap:demo
+```
+
+Use the same admin values you added in Vercel. This creates the admin and two upcoming sessions. Do not run initialization on every server start: Vercel functions can start more than once. After connecting GitHub and deploying, open the Vercel URL and check `/health/db` to confirm the API can reach the database.
 
 ## Main flows
 

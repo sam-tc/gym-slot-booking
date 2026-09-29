@@ -1,4 +1,5 @@
 require('dotenv/config');
+require('../temporal');
 
 const bcrypt = require('bcryptjs');
 const { getDb } = require('../db');
