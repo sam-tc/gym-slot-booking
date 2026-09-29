@@ -135,9 +135,10 @@ async function createSession(event) {
         'Creating session...';
 
     try {
-        const date = new Date(startTime);
+        const isoStartTime = `${startTime}:00+05:30`;
 
-        const isoStartTime = date.toISOString();
+        pageMessage.textContent =
+            'Creating session...';
 
         await apiRequest('/sessions', {
             method: 'POST',

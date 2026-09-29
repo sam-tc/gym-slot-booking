@@ -1,113 +1,168 @@
 const express = require('express');
 const { getDb } = require('../db');
-const { requireAuth, requireAdmin } = require('../middleware/auth.middleware');
+const {
+    requireAuth,
+    requireAdmin,
+} = require('../middleware/auth.middleware');
 
 const router = express.Router();
 
-router.post('/', requireAuth, requireAdmin, async (req, res, next) => {
-    try {
-        const { startTime } = req.body;
+router.post(
+    '/',
+    requireAuth,
+    requireAdmin,
+    async (req, res, next) => {
+        try {
+            const { startTime } = req.body;
 
-        if (!startTime) {
-            return res.status(400).json({
-                error: 'startTime is required',
-            });
-        }
+            if (!startTime) {
+                return res.status(400).json({
+                    error: 'startTime is required',
+                });
+            }
 
-        const start = Temporal.Instant.from(startTime);
+            if (typeof startTime !== 'string') {
+                return res.status(422).json({
+                    error: 'startTime must be a valid timestamp',
+                });
+            }
 
-        if (
-            Temporal.Instant.compare(
-                start,
-                Temporal.Now.instant()
-            ) <= 0
-        ) {
-            return res.status(422).json({
-                error: 'Session must start in the future',
-            });
-        }
+            const requestedStartTime = startTime.match(
+                /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/
+            );
 
-        if (
-            start.toString().slice(14, 16) !== '00' ||
-            start.toString().slice(17, 19) !== '00'
-        ) {
-            return res.status(422).json({
-                error: 'Session must start on the hour',
-            });
-        }
+            if (!requestedStartTime) {
+                return res.status(422).json({
+                    error: 'startTime must be a valid timestamp',
+                });
+            }
 
-        const db = await getDb();
+            const requestedMinute = requestedStartTime[3];
+            const requestedSecond = requestedStartTime[4];
 
-        const existingSessions = await db.orm.public.Session.all();
+            if (
+                requestedMinute !== '00' ||
+                requestedSecond !== '00'
+            ) {
+                return res.status(422).json({
+                    error: 'Session must start on the hour',
+                });
+            }
 
-        const existingSession = existingSessions.find(
-            (session) =>
-                session.startTime.toString() === startTime
-        );
+            let start;
 
-        if (existingSession) {
-            return res.status(409).json({
-                error: 'A session already exists at this start time',
-            });
-        }
+            try {
+                start = Temporal.Instant.from(startTime);
+            } catch (error) {
+                return res.status(422).json({
+                    error: 'startTime must be a valid timestamp',
+                });
+            }
 
-        const session = await db.orm.public.Session.create({
-            startTime: Temporal.Instant.from(startTime),
-            capacity: 20,
-        });
-
-        res.status(201).json({
-            session,
-        });
-    } catch (error) {
-        next(error);
-    }
-});
-
-router.get('/', requireAuth, async (req, res, next) => {
-    try {
-        const db = await getDb();
-
-        const { date } = req.query;
-
-        const sessions = await db.orm.public.Session
-            .include('bookings')
-            .all();
-
-        const upcomingSessions = sessions.filter(
-            (session) =>
+            if (
                 Temporal.Instant.compare(
-                    Temporal.Now.instant(),
-                    session.startTime
-                ) < 0
-        );
+                    start,
+                    Temporal.Now.instant()
+                ) <= 0
+            ) {
+                return res.status(422).json({
+                    error: 'Session must start in the future',
+                });
+            }
 
-        const filteredSessions = date
-            ? upcomingSessions.filter(
-                (session) =>
-                    session.startTime.toString().startsWith(date)
-            )
-            : upcomingSessions;
+            const db = await getDb();
 
-        const result = filteredSessions.map((session) => {
-            const bookedCount = session.bookings.filter(
-                (booking) => booking.status === 'BOOKED'
-            ).length;
+            const existingSessions =
+                await db.orm.public.Session.all();
 
-            return {
-                id: session.id,
-                startTime: session.startTime.toString(),
-                capacity: session.capacity,
-                seatsRemaining: session.capacity - bookedCount,
-            };
-        });
+            const existingSession =
+                existingSessions.find(
+                    (session) =>
+                        Temporal.Instant.compare(
+                            session.startTime,
+                            start
+                        ) === 0
+                );
 
-        res.status(200).json({
-            sessions: result,
-        });
-    } catch (error) {
-        next(error);
+            if (existingSession) {
+                return res.status(409).json({
+                    error:
+                        'A session already exists at this start time',
+                });
+            }
+
+            const session =
+                await db.orm.public.Session.create({
+                    startTime: start,
+                    capacity: 20,
+                });
+
+            res.status(201).json({
+                session,
+            });
+        } catch (error) {
+            next(error);
+        }
     }
-});
+);
+
+router.get(
+    '/',
+    requireAuth,
+    async (req, res, next) => {
+        try {
+            const db = await getDb();
+
+            const { date } = req.query;
+
+            const sessions =
+                await db.orm.public.Session
+                    .include('bookings')
+                    .all();
+
+            const upcomingSessions =
+                sessions.filter(
+                    (session) =>
+                        Temporal.Instant.compare(
+                            Temporal.Now.instant(),
+                            session.startTime
+                        ) < 0
+                );
+
+            const filteredSessions = date
+                ? upcomingSessions.filter(
+                    (session) =>
+                        session.startTime
+                            .toString()
+                            .startsWith(date)
+                )
+                : upcomingSessions;
+
+            const result =
+                filteredSessions.map((session) => {
+                    const bookedCount =
+                        session.bookings.filter(
+                            (booking) =>
+                                booking.status === 'BOOKED'
+                        ).length;
+
+                    return {
+                        id: session.id,
+                        startTime:
+                            session.startTime.toString(),
+                        capacity: session.capacity,
+                        seatsRemaining:
+                            session.capacity - bookedCount,
+                    };
+                });
+
+            res.status(200).json({
+                sessions: result,
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+);
 
 module.exports = router;
