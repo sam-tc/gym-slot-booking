@@ -6,6 +6,7 @@ const {
 } = require('../middleware/auth.middleware');
 
 const router = express.Router();
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 router.post(
     '/',
@@ -15,7 +16,7 @@ router.post(
         try {
             const { startTime } = req.body;
 
-            if (!startTime) {
+            if (typeof startTime !== 'string' || !startTime) {
                 return res.status(400).json({
                     error: 'startTime is required',
                 });
@@ -131,7 +132,7 @@ router.get(
 
             let filteredSessions = upcomingSessions;
             if (from || to) {
-                if (typeof from !== 'string' || typeof to !== 'string') {
+                if (typeof from !== 'string' || typeof to !== 'string' || !from || !to) {
                     return res.status(422).json({ error: 'Both from and to must be valid timestamps' });
                 }
                 let rangeStart;
@@ -150,6 +151,9 @@ router.get(
                     Temporal.Instant.compare(session.startTime, rangeEnd) < 0
                 );
             } else if (date) {
+                if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                    return res.status(422).json({ error: 'date must use YYYY-MM-DD format' });
+                }
                 filteredSessions = upcomingSessions.filter((session) =>
                     session.startTime.toString().startsWith(date)
                 );
