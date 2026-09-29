@@ -40,6 +40,12 @@ Requirements: Node.js with the Temporal API, npm, and PostgreSQL.
 
 The optional `seed/seed.js` script creates a demo admin, 21 demo members, two sessions, and sample bookings using fixed credentials. It has no npm script and should only be used against a disposable development database; do not use these credentials in a shared or production environment.
 
+## Deploy a temporary demo on Render
+
+The root `render.yaml` defines a Render web service and PostgreSQL database. In Render, create a Blueprint from this GitHub repository and review the resource plan before applying it. During setup, provide `ADMIN_NAME`, `ADMIN_EMAIL`, and a unique `ADMIN_PASSWORD` of at least 12 characters in Render's secret prompts. The service initializes the contract and creates that admin plus two upcoming sessions; it does not run the fixed-credential seed script.
+
+This Blueprint uses free plans for a quick demo. Render's free web service can spin down when idle, and its free PostgreSQL database expires after 30 days; use only disposable test accounts and data. Upgrade the database to a paid plan before relying on it for persistent use. See [Render's free-instance limits](https://render.com/docs/free).
+
 ## Main flows
 
 - Register and log in as a member; the app stores a one-hour JWT in browser local storage.
