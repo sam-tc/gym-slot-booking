@@ -43,8 +43,14 @@
                     <input
                         id="startTime"
                         type="datetime-local"
+                        aria-describedby="startTimeError"
                         required
                     >
+                    <small
+                        id="startTimeError"
+                        class="field-error"
+                        role="alert"
+                    ></small>
 
                     <small>
                         Sessions are one hour long and must start exactly
@@ -86,9 +92,16 @@
                         id="checkInCode"
                         type="text"
                         maxlength="6"
+                        pattern="[A-Za-z0-9]{6}"
+                        aria-describedby="checkInCodeError"
                         autocomplete="off"
                         required
                     >
+                    <small
+                        id="checkInCodeError"
+                        class="field-error"
+                        role="alert"
+                    ></small>
                 </div>
 
                 <button
