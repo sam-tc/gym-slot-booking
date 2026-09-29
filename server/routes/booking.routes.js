@@ -1,332 +1,423 @@
 const express = require('express');
 const crypto = require('crypto');
+
 const { getDb } = require('../db');
-const { requireAuth, requireAdmin } = require('../middleware/auth.middleware');
+const {
+    requireAuth,
+    requireAdmin,
+} = require('../middleware/auth.middleware');
 
 const router = express.Router();
 
-router.post('/', requireAuth, async (req, res, next) => {
-    try {
-        const { sessionId } = req.body;
+function generateCheckInCode() {
+    return crypto
+        .randomBytes(4)
+        .toString('base64url')
+        .slice(0, 6)
+        .toUpperCase();
+}
 
-        if (!sessionId) {
-            return res.status(400).json({
-                error: 'sessionId is required',
-            });
-        }
+function hashCheckInCode(code) {
+    return crypto
+        .createHash('sha256')
+        .update(code)
+        .digest('hex');
+}
 
-        const db = await getDb();
 
-        const result = await db.transaction(async (tx) => {
-            const sessionLockPlan = db.raw.sql`
-                SELECT "id"
-                FROM "Session"
-                WHERE "id" = ${sessionId}
-                FOR UPDATE
-            `.returnsRow({
-                id: 'pg/uuid@1',
-            }).build();
+/*
+ * POST /api/bookings
+ */
+router.post(
+    '/',
+    requireAuth,
+    async (req, res, next) => {
+        try {
+            const { sessionId } = req.body;
 
-            const lockedSessionRows = await tx.query(sessionLockPlan);
-
-            if (lockedSessionRows.length === 0) {
-                return {
-                    error: 'Session not found',
-                    status: 404,
-                };
-            }
-
-            const sessions = await tx.orm.public.Session.all();
-
-            const session = sessions.find(
-                (existingSession) => existingSession.id === sessionId
-            );
-
-            if (!session) {
-                return {
-                    error: 'Session not found',
-                    status: 404,
-                };
-            }
-
-            if (
-                Temporal.Instant.compare(
-                    Temporal.Now.instant(),
-                    session.startTime
-                ) >= 0
-            ) {
-                return {
-                    error: 'Cannot book a session that has already started',
-                    status: 409,
-                };
-            }
-
-            const dbBookings = await tx.orm.public.Booking.all();
-
-            const existingBooking = dbBookings.find(
-                (booking) =>
-                    booking.userId === req.user.userId &&
-                    booking.sessionId === sessionId &&
-                    booking.status === 'BOOKED'
-            );
-
-            if (existingBooking) {
-                return {
-                    error: 'You already have an active booking for this session',
-                    status: 409,
-                };
-            }
-
-            const bookedCount = dbBookings.filter(
-                (booking) =>
-                    booking.sessionId === sessionId &&
-                    booking.status === 'BOOKED'
-            ).length;
-
-            if (bookedCount >= session.capacity) {
-                return {
-                    error: 'Session is full',
-                    status: 409,
-                };
-            }
-
-            const checkInCode = crypto
-                .randomBytes(4)
-                .toString('base64url')
-                .slice(0, 6)
-                .toUpperCase();
-
-            const booking = await tx.orm.public.Booking.create({
-                userId: req.user.userId,
-                sessionId: session.id,
-                status: 'BOOKED',
-                checkInCodeHash: crypto
-                    .createHash('sha256')
-                    .update(checkInCode)
-                    .digest('hex'),
-            });
-
-            return {
-                booking: {
-                    id: booking.id,
-                    userId: booking.userId,
-                    sessionId: booking.sessionId,
-                    status: booking.status,
-                    checkInCode,
-                },
-            };
-        });
-
-        if (result.error) {
-            return res.status(result.status).json({
-                error: result.error,
-            });
-        }
-
-        res.status(201).json({
-            message: 'Booking created',
-            booking: result.booking,
-        });
-    } catch (error) {
-        next(error);
-    }
-});
-
-router.delete('/:bookingId', requireAuth, async (req, res, next) => {
-    try {
-        const { bookingId } = req.params;
-
-        if (!bookingId) {
-            return res.status(400).json({
-                error: 'bookingId is required',
-            });
-        }
-
-        const db = await getDb();
-
-        const result = await db.transaction(async (tx) => {
-            const bookings = await tx.orm.public.Booking.all();
-
-            const booking = bookings.find(
-                (existingBooking) =>
-                    existingBooking.id === bookingId
-            );
-
-            if (!booking) {
-                return {
-                    error: 'Booking not found',
-                    status: 404,
-                };
-            }
-
-            if (booking.userId !== req.user.userId) {
-                return {
-                    error: 'You can only cancel your own booking',
-                    status: 403,
-                };
-            }
-
-            if (booking.status !== 'BOOKED') {
-                return {
-                    error: 'Booking is already cancelled',
-                    status: 409,
-                };
-            }
-
-            const sessionLockPlan = db.raw.sql`
-                SELECT "id"
-                FROM "Session"
-                WHERE "id" = ${booking.sessionId}
-                FOR UPDATE
-            `.returnsRow({
-                id: 'pg/uuid@1',
-            }).build();
-
-            const lockedSessionRows = await tx.query(sessionLockPlan);
-
-            if (lockedSessionRows.length === 0) {
-                return {
-                    error: 'Session not found',
-                    status: 404,
-                };
-            }
-
-            const sessions = await tx.orm.public.Session.all();
-
-            const session = sessions.find(
-                (existingSession) =>
-                    existingSession.id === booking.sessionId
-            );
-
-            if (!session) {
-                return {
-                    error: 'Session not found',
-                    status: 404,
-                };
-            }
-
-            if (
-                Temporal.Instant.compare(
-                    Temporal.Now.instant(),
-                    session.startTime
-                ) >= 0
-            ) {
-                return {
-                    error: 'Booking can only be cancelled before the session starts',
-                    status: 409,
-                };
-            }
-
-            const cancelledBooking = await tx.orm.public.Booking
-                .where({ id: booking.id })
-                .update({
-                    status: 'CANCELLED',
+            if (!sessionId) {
+                return res.status(400).json({
+                    error: 'sessionId is required',
                 });
+            }
 
-            const waitlists = await tx.orm.public.Waitlist.all();
+            if (req.user.role !== 'MEMBER') {
+                return res.status(403).json({
+                    error: 'Only members can create bookings',
+                });
+            }
 
-            const sessionWaitlists = waitlists
-                .filter(
-                    (waitlist) =>
-                        waitlist.sessionId === session.id
-                )
-                .sort(
-                    (a, b) =>
-                        a.createdAt.epochMilliseconds -
-                        b.createdAt.epochMilliseconds
+            const db = await getDb();
+
+            const result = await db.transaction(async (tx) => {
+                const plan = db.raw.sql`
+                    SELECT "id"
+                    FROM "Session"
+                    WHERE "id" = ${sessionId}
+                    FOR UPDATE
+                `.returnsRow({
+                    id: 'pg/uuid@1',
+                }).build();
+
+                const lockedRows = await tx.query(plan);
+
+                if (lockedRows.length === 0) {
+                    return {
+                        error: 'Session not found',
+                        status: 404,
+                    };
+                }
+
+                const sessions =
+                    await tx.orm.public.Session.all();
+
+                const session = sessions.find(
+                    (existingSession) =>
+                        existingSession.id === sessionId
                 );
 
-            let promotedBooking = null;
+                if (!session) {
+                    return {
+                        error: 'Session not found',
+                        status: 404,
+                    };
+                }
 
-            if (sessionWaitlists.length > 0) {
-                const firstWaitlist = sessionWaitlists[0];
+                if (
+                    Temporal.Instant.compare(
+                        Temporal.Now.instant(),
+                        session.startTime
+                    ) >= 0
+                ) {
+                    return {
+                        error:
+                            'Cannot book a session that has already started',
+                        status: 409,
+                    };
+                }
 
-                const promoted = await tx.orm.public.Booking.create({
-                    userId: firstWaitlist.userId,
-                    sessionId: session.id,
-                    status: 'BOOKED',
-                });
+                const bookings =
+                    await tx.orm.public.Booking.all();
 
-                await tx.orm.public.Waitlist
-                    .where({ id: firstWaitlist.id })
-                    .delete();
+                const existingBooking = bookings.find(
+                    (booking) =>
+                        booking.userId === req.user.userId &&
+                        booking.sessionId === sessionId &&
+                        booking.status === 'BOOKED'
+                );
 
-                promotedBooking = {
-                    id: promoted.id,
-                    userId: promoted.userId,
-                    sessionId: promoted.sessionId,
-                    status: promoted.status,
+                if (existingBooking) {
+                    return {
+                        error:
+                            'You already have a booking for this session',
+                        status: 409,
+                    };
+                }
+
+                const bookedCount = bookings.filter(
+                    (booking) =>
+                        booking.sessionId === sessionId &&
+                        booking.status === 'BOOKED'
+                ).length;
+
+                if (bookedCount >= session.capacity) {
+                    return {
+                        error: 'Session is full',
+                        status: 409,
+                    };
+                }
+
+                const checkInCode =
+                    generateCheckInCode();
+
+                const booking =
+                    await tx.orm.public.Booking.create({
+                        userId: req.user.userId,
+                        sessionId,
+                        status: 'BOOKED',
+                        checkInCodeHash:
+                            hashCheckInCode(checkInCode),
+                    });
+
+                return {
+                    booking: {
+                        id: booking.id,
+                        userId: booking.userId,
+                        sessionId: booking.sessionId,
+                        status: booking.status,
+                        createdAt:
+                            booking.createdAt.toString(),
+                        checkInCode,
+                    },
                 };
+            });
+
+            if (result.error) {
+                return res.status(result.status).json({
+                    error: result.error,
+                });
             }
 
-            return {
-                booking: {
-                    id: cancelledBooking.id,
-                    userId: cancelledBooking.userId,
-                    sessionId: cancelledBooking.sessionId,
-                    status: cancelledBooking.status,
-                },
-                promotedBooking,
-            };
-        });
-
-        if (result.error) {
-            return res.status(result.status).json({
-                error: result.error,
+            res.status(201).json({
+                message: 'Booking created',
+                booking: result.booking,
             });
+        } catch (error) {
+            next(error);
         }
-
-        res.json({
-            message: 'Booking cancelled',
-            booking: result.booking,
-            promotedBooking: result.promotedBooking,
-        });
-    } catch (error) {
-        next(error);
     }
-});
+);
 
-router.get('/mine', requireAuth, async (req, res, next) => {
-    try {
-        const db = await getDb();
 
-        const bookings = await db.orm.public.Booking
-            .where({
-                userId: req.user.userId,
-            })
-            .all();
+/*
+ * DELETE /api/bookings/:bookingId
+ */
+router.delete(
+    '/:bookingId',
+    requireAuth,
+    async (req, res, next) => {
+        try {
+            const { bookingId } = req.params;
 
-        const sessions = await db.orm.public.Session.all();
+            if (!bookingId) {
+                return res.status(400).json({
+                    error: 'bookingId is required',
+                });
+            }
 
-        const result = bookings.map((booking) => {
-            const session = sessions.find(
-                (existingSession) =>
-                    existingSession.id === booking.sessionId
-            );
+            const db = await getDb();
 
-            return {
-                id: booking.id,
-                sessionId: booking.sessionId,
-                status: booking.status,
-                createdAt: booking.createdAt.toString(),
-                session: session
-                    ? {
-                        id: session.id,
-                        startTime: session.startTime.toString(),
-                        capacity: session.capacity,
+            const result = await db.transaction(async (tx) => {
+                const bookings =
+                    await tx.orm.public.Booking.all();
+
+                const booking = bookings.find(
+                    (existingBooking) =>
+                        existingBooking.id === bookingId
+                );
+
+                if (!booking) {
+                    return {
+                        error: 'Booking not found',
+                        status: 404,
+                    };
+                }
+
+                if (
+                    booking.userId !== req.user.userId
+                ) {
+                    return {
+                        error:
+                            'You can only cancel your own booking',
+                        status: 403,
+                    };
+                }
+
+                if (booking.status !== 'BOOKED') {
+                    return {
+                        error: 'Booking is already cancelled',
+                        status: 409,
+                    };
+                }
+
+                const sessions =
+                    await tx.orm.public.Session.all();
+
+                const session = sessions.find(
+                    (existingSession) =>
+                        existingSession.id ===
+                        booking.sessionId
+                );
+
+                if (!session) {
+                    return {
+                        error: 'Session not found',
+                        status: 404,
+                    };
+                }
+
+                if (
+                    Temporal.Instant.compare(
+                        Temporal.Now.instant(),
+                        session.startTime
+                    ) >= 0
+                ) {
+                    return {
+                        error:
+                            'Booking can only be cancelled before the session starts',
+                        status: 409,
+                    };
+                }
+
+                const cancelledBooking =
+                    await tx.orm.public.Booking
+                        .where({ id: booking.id })
+                        .update({
+                            status: 'CANCELLED',
+                        });
+
+                const waitlists =
+                    await tx.orm.public.Waitlist.all();
+
+                const sessionWaitlists =
+                    waitlists
+                        .filter(
+                            (waitlist) =>
+                                waitlist.sessionId ===
+                                session.id
+                        )
+                        .sort(
+                            (a, b) =>
+                                a.createdAt.epochMilliseconds -
+                                b.createdAt.epochMilliseconds
+                        );
+
+                let promotedBooking = null;
+
+                if (sessionWaitlists.length > 0) {
+                    const firstWaitlist =
+                        sessionWaitlists[0];
+
+                    const alreadyBooked =
+                        bookings.find(
+                            (existingBooking) =>
+                                existingBooking.userId ===
+                                    firstWaitlist.userId &&
+                                existingBooking.sessionId ===
+                                    session.id &&
+                                existingBooking.status ===
+                                    'BOOKED'
+                        );
+
+                    if (!alreadyBooked) {
+                        const promoted =
+                            await tx.orm.public.Booking.create({
+                                userId:
+                                    firstWaitlist.userId,
+                                sessionId:
+                                    session.id,
+                                status: 'BOOKED',
+                            });
+
+                        promotedBooking = {
+                            id: promoted.id,
+                            userId: promoted.userId,
+                            sessionId:
+                                promoted.sessionId,
+                            status: promoted.status,
+                        };
                     }
-                    : null,
-            };
-        });
 
-        res.status(200).json({
-            bookings: result,
-        });
-    } catch (error) {
-        next(error);
+                    /*
+                     * The waitlist position has been consumed
+                     * whether the member was newly promoted or
+                     * already had an active booking.
+                     */
+                    const deleteWaitlist =
+                        db.raw.sql`
+                            DELETE FROM "Waitlist"
+                            WHERE "id" = ${firstWaitlist.id}
+                        `.build();
+
+                    await tx.query(deleteWaitlist);
+                }
+
+                return {
+                    booking: {
+                        id: cancelledBooking.id,
+                        userId:
+                            cancelledBooking.userId,
+                        sessionId:
+                            cancelledBooking.sessionId,
+                        status:
+                            cancelledBooking.status,
+                    },
+                    promotedBooking,
+                };
+            });
+
+            if (result.error) {
+                return res.status(result.status).json({
+                    error: result.error,
+                });
+            }
+
+            res.json({
+                message: 'Booking cancelled',
+                booking: result.booking,
+                promotedBooking:
+                    result.promotedBooking,
+            });
+        } catch (error) {
+            next(error);
+        }
     }
-});
+);
 
+
+/*
+ * GET /api/bookings/mine
+ */
+router.get(
+    '/mine',
+    requireAuth,
+    async (req, res, next) => {
+        try {
+            const db = await getDb();
+
+            const bookings =
+                await db.orm.public.Booking
+                    .where({
+                        userId: req.user.userId,
+                    })
+                    .all();
+
+            const sessions =
+                await db.orm.public.Session.all();
+
+            const result = bookings.map((booking) => {
+                const session = sessions.find(
+                    (existingSession) =>
+                        existingSession.id ===
+                        booking.sessionId
+                );
+
+                return {
+                    id: booking.id,
+                    sessionId:
+                        booking.sessionId,
+                    status: booking.status,
+                    createdAt:
+                        booking.createdAt.toString(),
+                    checkedInAt:
+                        booking.checkedInAt
+                            ? booking.checkedInAt.toString()
+                            : null,
+                    session: session
+                        ? {
+                            id: session.id,
+                            startTime:
+                                session.startTime.toString(),
+                            capacity:
+                                session.capacity,
+                        }
+                        : null,
+                };
+            });
+
+            res.status(200).json({
+                bookings: result,
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+
+/*
+ * GET /api/bookings/session/:sessionId
+ */
 router.get(
     '/session/:sessionId',
     requireAuth,
@@ -343,7 +434,8 @@ router.get(
 
             const db = await getDb();
 
-            const sessions = await db.orm.public.Session.all();
+            const sessions =
+                await db.orm.public.Session.all();
 
             const session = sessions.find(
                 (existingSession) =>
@@ -356,24 +448,35 @@ router.get(
                 });
             }
 
-            const bookings = await db.orm.public.Booking
-                .where({
-                    sessionId,
-                })
-                .all();
+            const bookings =
+                await db.orm.public.Booking
+                    .where({
+                        sessionId,
+                    })
+                    .all();
 
-            const users = await db.orm.public.User.all();
+            const users =
+                await db.orm.public.User.all();
 
             const result = bookings.map((booking) => {
                 const user = users.find(
                     (existingUser) =>
-                        existingUser.id === booking.userId
+                        existingUser.id ===
+                        booking.userId
                 );
 
                 return {
                     id: booking.id,
+                    userId: booking.userId,
+                    sessionId:
+                        booking.sessionId,
                     status: booking.status,
-                    createdAt: booking.createdAt.toString(),
+                    createdAt:
+                        booking.createdAt.toString(),
+                    checkedInAt:
+                        booking.checkedInAt
+                            ? booking.checkedInAt.toString()
+                            : null,
                     user: user
                         ? {
                             id: user.id,
@@ -387,8 +490,10 @@ router.get(
             res.status(200).json({
                 session: {
                     id: session.id,
-                    startTime: session.startTime.toString(),
-                    capacity: session.capacity,
+                    startTime:
+                        session.startTime.toString(),
+                    capacity:
+                        session.capacity,
                 },
                 bookings: result,
             });
@@ -398,6 +503,10 @@ router.get(
     }
 );
 
+
+/*
+ * POST /api/bookings/check-in
+ */
 router.post(
     '/check-in',
     requireAuth,
@@ -412,132 +521,168 @@ router.post(
                 });
             }
 
-            const normalizedCode = code.trim().toUpperCase();
+            if (
+                typeof code !== 'string' ||
+                code.trim().length !== 6
+            ) {
+                return res.status(422).json({
+                    error:
+                        'code must be a 6-character check-in code',
+                });
+            }
 
-            const codeHash = crypto
-                .createHash('sha256')
-                .update(normalizedCode)
-                .digest('hex');
+            const normalizedCode =
+                code.trim().toUpperCase();
+
+            const codeHash =
+                hashCheckInCode(normalizedCode);
 
             const db = await getDb();
 
-            const result = await db.transaction(async (tx) => {
-                const bookings = await tx.orm.public.Booking.all();
+            const result = await db.transaction(
+                async (tx) => {
+                    const bookings =
+                        await tx.orm.public.Booking.all();
 
-                const booking = bookings.find(
-                    (existingBooking) =>
-                        existingBooking.checkInCodeHash === codeHash
-                );
+                    const booking =
+                        bookings.find(
+                            (existingBooking) =>
+                                existingBooking
+                                    .checkInCodeHash ===
+                                codeHash
+                        );
 
-                if (!booking) {
+                    if (!booking) {
+                        return {
+                            error:
+                                'Invalid check-in code',
+                            status: 404,
+                        };
+                    }
+
+                    if (
+                        booking.status !== 'BOOKED'
+                    ) {
+                        return {
+                            error:
+                                'This booking is not active',
+                            status: 409,
+                        };
+                    }
+
+                    if (booking.checkedInAt) {
+                        return {
+                            error:
+                                'This check-in code has already been used',
+                            status: 409,
+                        };
+                    }
+
+                    const sessions =
+                        await tx.orm.public.Session.all();
+
+                    const session =
+                        sessions.find(
+                            (existingSession) =>
+                                existingSession.id ===
+                                booking.sessionId
+                        );
+
+                    if (!session) {
+                        return {
+                            error:
+                                'Session not found',
+                            status: 404,
+                        };
+                    }
+
+                    const plan = db.raw.sql`
+                        SELECT "id"
+                        FROM "Session"
+                        WHERE "id" = ${session.id}
+                        FOR UPDATE
+                    `.returnsRow({
+                        id: 'pg/uuid@1',
+                    }).build();
+
+                    await tx.query(plan);
+
+                    const now =
+                        Temporal.Now.instant();
+
+                    const sessionEnd =
+                        session.startTime.add({
+                            hours: 1,
+                        });
+
+                    if (
+                        Temporal.Instant.compare(
+                            now,
+                            session.startTime
+                        ) < 0 ||
+                        Temporal.Instant.compare(
+                            now,
+                            sessionEnd
+                        ) >= 0
+                    ) {
+                        return {
+                            error:
+                                'Check-in is only allowed during the session hour',
+                            status: 409,
+                        };
+                    }
+
+                    const checkedInAt = now;
+
+                    const updatedBooking =
+                        await tx.orm.public.Booking
+                            .where({
+                                id: booking.id,
+                            })
+                            .update({
+                                checkedInAt,
+                            });
+
+                    const users =
+                        await tx.orm.public.User.all();
+
+                    const user = users.find(
+                        (existingUser) =>
+                            existingUser.id ===
+                            booking.userId
+                    );
+
                     return {
-                        error: 'Invalid check-in code',
-                        status: 404,
-                    };
-                }
-
-                if (booking.status !== 'BOOKED') {
-                    return {
-                        error: 'Booking is not active',
-                        status: 409,
-                    };
-                }
-
-                if (booking.checkedInAt) {
-                    return {
-                        error: 'Check-in code has already been used',
-                        status: 409,
-                    };
-                }
-
-                const sessionLockPlan = db.raw.sql`
-                    SELECT "id"
-                    FROM "Session"
-                    WHERE "id" = ${booking.sessionId}
-                    FOR UPDATE
-                `.returnsRow({
-                    id: 'pg/uuid@1',
-                }).build();
-
-                const lockedSessionRows = await tx.query(sessionLockPlan);
-
-                if (lockedSessionRows.length === 0) {
-                    return {
-                        error: 'Session not found',
-                        status: 404,
-                    };
-                }
-
-                const sessions = await tx.orm.public.Session.all();
-
-                const session = sessions.find(
-                    (existingSession) =>
-                        existingSession.id === booking.sessionId
-                );
-
-                if (!session) {
-                    return {
-                        error: 'Session not found',
-                        status: 404,
-                    };
-                }
-
-                const now = Temporal.Now.instant();
-
-                const sessionEnd = session.startTime.add({
-                    hours: 1,
-                });
-
-                if (
-                    Temporal.Instant.compare(
-                        now,
-                        session.startTime
-                    ) < 0 ||
-                    Temporal.Instant.compare(
-                        now,
-                        sessionEnd
-                    ) >= 0
-                ) {
-                    return {
-                        error: 'Check-in is only allowed during the session',
-                        status: 409,
-                    };
-                }
-
-                const users = await tx.orm.public.User.all();
-
-                const user = users.find(
-                    (existingUser) =>
-                        existingUser.id === booking.userId
-                );
-
-                const checkedInBooking = await tx.orm.public.Booking
-                    .where({ id: booking.id })
-                    .update({
-                        checkedInAt: now,
-                    });
-
-                return {
-                    booking: {
-                        id: checkedInBooking.id,
-                        status: checkedInBooking.status,
-                        checkedInAt:
-                            checkedInBooking.checkedInAt.toString(),
-                        user: user
-                            ? {
-                                id: user.id,
-                                name: user.name,
-                                email: user.email,
-                            }
-                            : null,
-                        session: {
-                            id: session.id,
-                            startTime:
-                                session.startTime.toString(),
+                        booking: {
+                            id:
+                                updatedBooking.id,
+                            userId:
+                                updatedBooking.userId,
+                            sessionId:
+                                updatedBooking.sessionId,
+                            status:
+                                updatedBooking.status,
+                            checkedInAt:
+                                updatedBooking
+                                    .checkedInAt
+                                    .toString(),
+                            user: user
+                                ? {
+                                    id: user.id,
+                                    name: user.name,
+                                    email: user.email,
+                                }
+                                : null,
+                            session: {
+                                id: session.id,
+                                startTime:
+                                    session.startTime
+                                        .toString(),
+                            },
                         },
-                    },
-                };
-            });
+                    };
+                }
+            );
 
             if (result.error) {
                 return res.status(result.status).json({
@@ -545,7 +690,7 @@ router.post(
                 });
             }
 
-            res.json({
+            res.status(200).json({
                 message: 'Check-in successful',
                 booking: result.booking,
             });
@@ -554,5 +699,6 @@ router.post(
         }
     }
 );
+
 
 module.exports = router;
