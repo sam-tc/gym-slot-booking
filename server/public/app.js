@@ -42,12 +42,37 @@ if (authForm) {
     authForm.addEventListener('submit', async (event) => {
         event.preventDefault();
 
+        const submitButton = document.getElementById('submitButton');
+        const nameError = document.getElementById('nameError');
+        const emailError = document.getElementById('emailError');
+        const passwordError = document.getElementById('passwordError');
+
+        nameError.textContent = '';
+        emailError.textContent = '';
+        passwordError.textContent = '';
+
         const name = document.getElementById('name').value.trim();
         const email = document.getElementById('email').value.trim();
         const password = document.getElementById('password').value;
         const formMessage = document.getElementById('formMessage');
 
+        if (isRegistering && name.length < 2) {
+            nameError.textContent = 'Name must be at least 2 characters.';
+            return;
+        }
+
+        if (!email.includes('@')) {
+            emailError.textContent = 'Enter a valid email address.';
+            return;
+        }
+
+        if (password.length < 8) {
+            passwordError.textContent = 'Password must be at least 8 characters.';
+            return;
+        }
+
         formMessage.textContent = 'Please wait...';
+        submitButton.disabled = true;
 
         try {
             const endpoint = isRegistering ? '/auth/register' : '/auth/login';
@@ -80,6 +105,8 @@ if (authForm) {
         } catch (error) {
             console.error(error);
             formMessage.textContent = 'Unable to connect to the server.';
+        } finally {
+            submitButton.disabled = false;
         }
     });
 }
