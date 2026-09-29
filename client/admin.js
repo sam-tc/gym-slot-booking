@@ -60,7 +60,11 @@ function escapeHtml(value) {
 function localDateTimeToIso(value) {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) throw new Error('Choose a valid session start time.');
-    return date.toISOString();
+    const offset = -date.getTimezoneOffset();
+    const sign = offset >= 0 ? '+' : '-';
+    const hours = String(Math.floor(Math.abs(offset) / 60)).padStart(2, '0');
+    const minutes = String(Math.abs(offset) % 60).padStart(2, '0');
+    return `${value}:00${sign}${hours}:${minutes}`;
 }
 
 async function verifyAdmin() {

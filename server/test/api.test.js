@@ -23,6 +23,7 @@ const session = {
     startTime: Temporal.Now.instant().subtract({ minutes: 30 }),
     capacity: 20,
 };
+const sessions = [session];
 const fakeDb = {
     orm: {
         public: {
@@ -32,7 +33,14 @@ const fakeDb = {
                     update: async (values) => Object.assign(booking, values),
                 }),
             },
-            Session: { all: async () => [session] },
+            Session: {
+                all: async () => sessions,
+                create: async (values) => {
+                    const created = { id: 'session-created', ...values };
+                    sessions.push(created);
+                    return created;
+                },
+            },
             User: {
                 all: async () => [{
                     id: booking.userId,
@@ -116,6 +124,20 @@ test('session creation returns client errors for invalid input', async () => {
 
     assert.equal(missing.response.status, 400);
     assert.equal(invalid.response.status, 422);
+});
+
+test('session creation accepts a local hourly time with a half-hour offset', async () => {
+    const tomorrow = Temporal.Now.zonedDateTimeISO('Asia/Kolkata')
+        .add({ days: 1 })
+        .with({ hour: 9, minute: 0, second: 0, millisecond: 0, microsecond: 0, nanosecond: 0 });
+    const startTime = `${tomorrow.toPlainDate()}T09:00:00+05:30`;
+    const { response, body } = await request('/api/sessions', {
+        token: adminToken,
+        ...jsonBody({ startTime }),
+    });
+
+    assert.equal(response.status, 201, JSON.stringify(body));
+    assert.equal(body.session.capacity, 20);
 });
 
 test('check-in enforces admin role and validates code shape', async () => {
