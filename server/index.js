@@ -51,18 +51,28 @@ app.use((error, req, res, next) => {
         return next(error);
     }
 
-    const status = Number.isInteger(error.status) &&
-        error.status >= 400 &&
-        error.status < 600
-        ? error.status
-        : 500;
+    const isUniqueViolation =
+        error?.sqlState === '23505' ||
+        error?.code === 'P2002';
+
+    const status = isUniqueViolation
+        ? 409
+        : Number.isInteger(error.status) &&
+            error.status >= 400 &&
+            error.status < 600
+            ? error.status
+            : 500;
 
     if (status >= 500) {
         console.error(error);
     }
 
     res.status(status).json({
-        error: status < 500 ? 'Invalid request body' : 'Internal server error',
+        error: isUniqueViolation
+            ? 'A record with these details already exists'
+            : status < 500
+                ? 'Invalid request body'
+                : 'Internal server error',
     });
 });
 
