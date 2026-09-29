@@ -1,5 +1,6 @@
 const express = require('express');
-const path = require('path');const { getDb } = require('./db');
+const path = require('path');
+const { getDb } = require('./db');
 const authRoutes = require('./routes/auth.routes');
 const userRoutes = require('./routes/user.routes');
 const sessionRoutes = require('./routes/session.routes');
@@ -7,7 +8,7 @@ const bookingRoutes = require('./routes/booking.routes');
 const waitlistRoutes = require('./routes/waitlist.routes');
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 app.use(express.json());
 
@@ -51,5 +52,5 @@ app.use((error, req, res, next) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server listening on port ${PORT}`);
 });
