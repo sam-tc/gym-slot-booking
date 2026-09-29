@@ -64,7 +64,7 @@ The app is configured for Vercel's Express support. The static website is in `se
 
 The app needs a PostgreSQL database hosted separately. Create one with a provider such as [Neon](https://neon.tech/), then copy its pooled PostgreSQL connection string into Vercel as `DATABASE_URL`. Add `JWT_SECRET` and `CHECK_IN_SECRET` as long random secrets. Keep all three values private.
 
-Vercel runs `prisma db init` during each deployment, which initializes a new database before the app receives requests. It is deliberately a build step instead of a server-start step, because Vercel functions can start more than once. After deploying, open the Vercel URL and check `/health/db` to confirm the API can reach the database.
+Before deploying, initialize the PostgreSQL database once and apply the committed migration graph from a trusted environment. Do not put database initialization into the Vercel build because deployments should not recreate or mutate production database state. After deploying, open the Vercel URL and check `/health/db` to confirm the API can reach the database.
 
 To create the administrator, demo members, and sample sessions, run this once from a trusted computer with access to the same database. In `server/`, copy `.env.example` to `.env`, set `DATABASE_URL`, `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and `MEMBER_PASSWORD`, then run `npm run bootstrap:demo`. Keep `.env` private; it is ignored by Git.
 
