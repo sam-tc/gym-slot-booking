@@ -8,6 +8,7 @@ const {
 } = require('../middleware/auth.middleware');
 
 const router = express.Router();
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function generateCheckInCode(bookingId) {
     const secret = process.env.CHECK_IN_SECRET || process.env.JWT_SECRET;
@@ -45,7 +46,7 @@ router.post(
         try {
             const { sessionId } = req.body;
 
-            if (!sessionId) {
+            if (typeof sessionId !== 'string' || !UUID_RE.test(sessionId)) {
                 return res.status(400).json({
                     error: 'sessionId is required',
                 });
@@ -194,7 +195,7 @@ router.delete(
         try {
             const { bookingId } = req.params;
 
-            if (!bookingId) {
+            if (typeof bookingId !== 'string' || !UUID_RE.test(bookingId)) {
                 return res.status(400).json({
                     error: 'bookingId is required',
                 });
@@ -457,7 +458,7 @@ router.get(
         try {
             const { sessionId } = req.params;
 
-            if (!sessionId) {
+            if (typeof sessionId !== 'string' || !UUID_RE.test(sessionId)) {
                 return res.status(400).json({
                     error: 'sessionId is required',
                 });
@@ -554,7 +555,8 @@ router.post(
 
             if (
                 typeof code !== 'string' ||
-                code.trim().length !== 6
+                code.trim().length !== 6 ||
+                !/^[A-Z0-9]+$/i.test(code.trim())
             ) {
                 return res.status(422).json({
                     error:
