@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('crypto');
 const { getDb } = require('../db');
 const { requireAuth, requireAdmin } = require('../middleware/auth.middleware');
 
@@ -77,10 +78,20 @@ router.post('/', requireAuth, async (req, res, next) => {
                 };
             }
 
+            const checkInCode = crypto
+                .randomBytes(4)
+                .toString('base64url')
+                .slice(0, 6)
+                .toUpperCase();
+
             const booking = await tx.orm.public.Booking.create({
                 userId: req.user.userId,
                 sessionId: session.id,
                 status: 'BOOKED',
+                checkInCodeHash: crypto
+                    .createHash('sha256')
+                    .update(checkInCode)
+                    .digest('hex'),
             });
 
             return {
@@ -89,6 +100,7 @@ router.post('/', requireAuth, async (req, res, next) => {
                     userId: booking.userId,
                     sessionId: booking.sessionId,
                     status: booking.status,
+                    checkInCode,
                 },
             };
         });
@@ -367,6 +379,163 @@ router.get(
                     capacity: session.capacity,
                 },
                 bookings: result,
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+router.post(
+    '/check-in',
+    requireAuth,
+    requireAdmin,
+    async (req, res, next) => {
+        try {
+            const { code } = req.body;
+
+            if (!code) {
+                return res.status(400).json({
+                    error: 'code is required',
+                });
+            }
+
+            const normalizedCode = code.trim().toUpperCase();
+
+            const codeHash = crypto
+                .createHash('sha256')
+                .update(normalizedCode)
+                .digest('hex');
+
+            const db = await getDb();
+
+            const result = await db.transaction(async (tx) => {
+                const bookings = await tx.orm.public.Booking.all();
+
+                const booking = bookings.find(
+                    (existingBooking) =>
+                        existingBooking.checkInCodeHash === codeHash
+                );
+
+                if (!booking) {
+                    return {
+                        error: 'Invalid check-in code',
+                        status: 404,
+                    };
+                }
+
+                if (booking.status !== 'BOOKED') {
+                    return {
+                        error: 'Booking is not active',
+                        status: 409,
+                    };
+                }
+
+                if (booking.checkedInAt) {
+                    return {
+                        error: 'Check-in code has already been used',
+                        status: 409,
+                    };
+                }
+
+                const sessionLockPlan = db.raw.sql`
+                    SELECT "id"
+                    FROM "Session"
+                    WHERE "id" = ${booking.sessionId}
+                    FOR UPDATE
+                `.returnsRow({
+                    id: 'pg/uuid@1',
+                }).build();
+
+                const lockedSessionRows = await tx.query(sessionLockPlan);
+
+                if (lockedSessionRows.length === 0) {
+                    return {
+                        error: 'Session not found',
+                        status: 404,
+                    };
+                }
+
+                const sessions = await tx.orm.public.Session.all();
+
+                const session = sessions.find(
+                    (existingSession) =>
+                        existingSession.id === booking.sessionId
+                );
+
+                if (!session) {
+                    return {
+                        error: 'Session not found',
+                        status: 404,
+                    };
+                }
+
+                const now = Temporal.Now.instant();
+
+                const sessionEnd = session.startTime.add({
+                    hours: 1,
+                });
+
+                if (
+                    Temporal.Instant.compare(
+                        now,
+                        session.startTime
+                    ) < 0 ||
+                    Temporal.Instant.compare(
+                        now,
+                        sessionEnd
+                    ) >= 0
+                ) {
+                    return {
+                        error: 'Check-in is only allowed during the session',
+                        status: 409,
+                    };
+                }
+
+                const users = await tx.orm.public.User.all();
+
+                const user = users.find(
+                    (existingUser) =>
+                        existingUser.id === booking.userId
+                );
+
+                const checkedInBooking = await tx.orm.public.Booking
+                    .where({ id: booking.id })
+                    .update({
+                        checkedInAt: now,
+                    });
+
+                return {
+                    booking: {
+                        id: checkedInBooking.id,
+                        status: checkedInBooking.status,
+                        checkedInAt:
+                            checkedInBooking.checkedInAt.toString(),
+                        user: user
+                            ? {
+                                id: user.id,
+                                name: user.name,
+                                email: user.email,
+                            }
+                            : null,
+                        session: {
+                            id: session.id,
+                            startTime:
+                                session.startTime.toString(),
+                        },
+                    },
+                };
+            });
+
+            if (result.error) {
+                return res.status(result.status).json({
+                    error: result.error,
+                });
+            }
+
+            res.json({
+                message: 'Check-in successful',
+                booking: result.booking,
             });
         } catch (error) {
             next(error);
