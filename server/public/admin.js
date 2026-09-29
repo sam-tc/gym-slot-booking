@@ -283,6 +283,14 @@ async function checkInMember(event) {
 
     const code = input.value.trim();
     const submitButton = checkInForm.querySelector('button[type="submit"]');
+    const codeError = document.getElementById('checkInCodeError');
+
+    codeError.textContent = '';
+
+    if (!/^[A-Za-z0-9]{6}$/.test(code)) {
+        codeError.textContent = 'Enter the 6-character check-in code.';
+        return;
+    }
 
     checkInResult.textContent =
         'Checking in member...';
