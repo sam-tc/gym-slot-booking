@@ -46,15 +46,9 @@ The app is configured for Vercel's Express support. The static website is in `se
 
 The app needs a PostgreSQL database hosted separately. Create one with a provider such as [Neon](https://neon.tech/), then copy its pooled PostgreSQL connection string into Vercel as `DATABASE_URL`. Add `JWT_SECRET` as a long random secret. Keep both values private.
 
-Initialize the database once from a trusted computer with Node.js 24 and access to that database. In `server/`, copy `.env.example` to `.env`, then set `DATABASE_URL`, `ADMIN_NAME`, `ADMIN_EMAIL`, and a unique `ADMIN_PASSWORD` of at least 12 characters in `.env`. Keep `.env` private; it is ignored by Git. Run:
+Vercel runs `prisma db init` during each deployment, which initializes a new database before the app receives requests. It is deliberately a build step instead of a server-start step, because Vercel functions can start more than once. After deploying, open the Vercel URL and check `/health/db` to confirm the API can reach the database.
 
-```sh
-npm ci
-npx prisma db init --db "$DATABASE_URL"
-npm run bootstrap:demo
-```
-
-This creates the admin and two upcoming sessions. Add the same pooled `DATABASE_URL` to Vercel, along with a long random `JWT_SECRET`, then deploy. Do not run initialization on every server start: Vercel functions can start more than once. After deploying, open the Vercel URL and check `/health/db` to confirm the API can reach the database.
+To create the administrator and two sample future sessions, run this once from a trusted computer with access to the same database. In `server/`, copy `.env.example` to `.env`, set `DATABASE_URL`, `ADMIN_NAME`, `ADMIN_EMAIL`, and a unique `ADMIN_PASSWORD` of at least 12 characters, then run `npm run bootstrap:demo`. Keep `.env` private; it is ignored by Git.
 
 ## Main flows
 
