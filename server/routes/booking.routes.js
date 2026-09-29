@@ -1,6 +1,6 @@
 const express = require('express');
 const { getDb } = require('../db');
-const { requireAuth } = require('../middleware/auth.middleware');
+const { requireAuth, requireAdmin } = require('../middleware/auth.middleware');
 
 const router = express.Router();
 
@@ -302,5 +302,76 @@ router.get('/mine', requireAuth, async (req, res, next) => {
         next(error);
     }
 });
+
+router.get(
+    '/session/:sessionId',
+    requireAuth,
+    requireAdmin,
+    async (req, res, next) => {
+        try {
+            const { sessionId } = req.params;
+
+            if (!sessionId) {
+                return res.status(400).json({
+                    error: 'sessionId is required',
+                });
+            }
+
+            const db = await getDb();
+
+            const sessions = await db.orm.public.Session.all();
+
+            const session = sessions.find(
+                (existingSession) =>
+                    existingSession.id === sessionId
+            );
+
+            if (!session) {
+                return res.status(404).json({
+                    error: 'Session not found',
+                });
+            }
+
+            const bookings = await db.orm.public.Booking
+                .where({
+                    sessionId,
+                })
+                .all();
+
+            const users = await db.orm.public.User.all();
+
+            const result = bookings.map((booking) => {
+                const user = users.find(
+                    (existingUser) =>
+                        existingUser.id === booking.userId
+                );
+
+                return {
+                    id: booking.id,
+                    status: booking.status,
+                    createdAt: booking.createdAt.toString(),
+                    user: user
+                        ? {
+                            id: user.id,
+                            name: user.name,
+                            email: user.email,
+                        }
+                        : null,
+                };
+            });
+
+            res.status(200).json({
+                session: {
+                    id: session.id,
+                    startTime: session.startTime.toString(),
+                    capacity: session.capacity,
+                },
+                bookings: result,
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+);
 
 module.exports = router;
