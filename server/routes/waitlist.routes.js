@@ -3,12 +3,13 @@ const { getDb } = require('../db');
 const { requireAuth } = require('../middleware/auth.middleware');
 
 const router = express.Router();
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 router.post('/', requireAuth, async (req, res, next) => {
     try {
         const { sessionId } = req.body;
 
-        if (!sessionId) {
+        if (typeof sessionId !== 'string' || !UUID_RE.test(sessionId)) {
             return res.status(400).json({
                 error: 'sessionId is required',
             });
@@ -162,7 +163,7 @@ router.delete('/:waitlistId', requireAuth, async (req, res, next) => {
     try {
         const { waitlistId } = req.params;
 
-        if (!waitlistId) {
+        if (typeof waitlistId !== 'string' || !UUID_RE.test(waitlistId)) {
             return res.status(400).json({
                 error: 'waitlistId is required',
             });
