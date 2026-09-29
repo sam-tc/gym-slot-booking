@@ -47,16 +47,16 @@ Requirements: Node.js 24, npm, and PostgreSQL. The server loads a Temporal polyf
 
    It listens on `PORT` when provided, otherwise port `3000`. Open `http://localhost:3000` (or the configured port).
 
-The supported demo bootstrap creates one admin, 21 demo members, sessions across several upcoming days, one full session, and a waitlisted member. It is intended only for a disposable development/demo database.
+The supported demo bootstrap creates one admin, 21 demo members, sessions across four upcoming days, one full session, two bookings on a partial session, and a waitlisted member. It is intended only for a disposable development/demo database.
 
 ## Demo credentials
 
 These credentials are **development/demo credentials only** and must not be reused for production:
 
-- Admin: `admin@example.com` / `AdminDemo123!`
-- Member: `member1@example.com` / `MemberDemo123!`
+- Admin: `admin@example.com` / `demo-admin-password-123`
+- Member: `member1@example.com` / `demo-member-password-123`
 
-Run `npm run bootstrap:demo` after setting `ADMIN_EMAIL=admin@example.com`, `ADMIN_PASSWORD=AdminDemo123!`, and `ADMIN_NAME=Gym Admin` in your private `server/.env` to create the admin and demo data.
+Run `npm run bootstrap:demo` after copying `server/.env.example` to `server/.env` and keeping the demo-only values for `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and `MEMBER_PASSWORD`. Change them before using the app outside a disposable demo database.
 
 ## Deploy a demo on Vercel
 
@@ -66,7 +66,7 @@ The app needs a PostgreSQL database hosted separately. Create one with a provide
 
 Vercel runs `prisma db init` during each deployment, which initializes a new database before the app receives requests. It is deliberately a build step instead of a server-start step, because Vercel functions can start more than once. After deploying, open the Vercel URL and check `/health/db` to confirm the API can reach the database.
 
-To create the administrator, demo members, and sample sessions, run this once from a trusted computer with access to the same database. In `server/`, copy `.env.example` to `.env`, set `DATABASE_URL`, `ADMIN_NAME`, `ADMIN_EMAIL`, and a unique `ADMIN_PASSWORD` of at least 12 characters, then run `npm run bootstrap:demo`. Keep `.env` private; it is ignored by Git.
+To create the administrator, demo members, and sample sessions, run this once from a trusted computer with access to the same database. In `server/`, copy `.env.example` to `.env`, set `DATABASE_URL`, `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and `MEMBER_PASSWORD`, then run `npm run bootstrap:demo`. Keep `.env` private; it is ignored by Git.
 
 ## Main flows
 
