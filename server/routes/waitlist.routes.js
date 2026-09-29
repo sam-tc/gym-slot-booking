@@ -4,29 +4,6 @@ const { requireAuth } = require('../middleware/auth.middleware');
 
 const router = express.Router();
 
-router.get('/mine', requireAuth, async (req, res, next) => {
-    try {
-        const db = await getDb();
-
-        const waitlists = await db.orm.public.Waitlist
-            .where({
-                userId: req.user.userId,
-            })
-            .all();
-
-        res.status(200).json({
-            waitlists: waitlists.map((waitlist) => ({
-                id: waitlist.id,
-                userId: waitlist.userId,
-                sessionId: waitlist.sessionId,
-                createdAt: waitlist.createdAt.toString(),
-            })),
-        });
-    } catch (error) {
-        next(error);
-    }
-});
-
 router.post('/', requireAuth, async (req, res, next) => {
     try {
         const { sessionId } = req.body;
@@ -139,6 +116,48 @@ router.post('/', requireAuth, async (req, res, next) => {
     }
 });
 
+
+router.get('/mine', requireAuth, async (req, res, next) => {
+    try {
+        const db = await getDb();
+
+        const waitlists = await db.orm.public.Waitlist
+            .where({
+                userId: req.user.userId,
+            })
+            .all();
+
+        const sessions = await db.orm.public.Session.all();
+
+        const result = waitlists.map((waitlist) => {
+            const session = sessions.find(
+                (existingSession) =>
+                    existingSession.id === waitlist.sessionId
+            );
+
+            return {
+                id: waitlist.id,
+                sessionId: waitlist.sessionId,
+                createdAt: waitlist.createdAt.toString(),
+                session: session
+                    ? {
+                        id: session.id,
+                        startTime: session.startTime.toString(),
+                        capacity: session.capacity,
+                    }
+                    : null,
+            };
+        });
+
+        res.status(200).json({
+            waitlists: result,
+        });
+    } catch (error) {
+        next(error);
+    }
+});
+
+
 router.delete('/:waitlistId', requireAuth, async (req, res, next) => {
     try {
         const { waitlistId } = req.params;
@@ -181,5 +200,6 @@ router.delete('/:waitlistId', requireAuth, async (req, res, next) => {
         next(error);
     }
 });
+
 
 module.exports = router;
