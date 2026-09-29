@@ -295,8 +295,6 @@ async function bookSession(sessionId, button) {
         session.seatsRemaining =
             oldSeatsRemaining;
 
-        renderSessions();
-
         pageMessage.textContent =
             error.message;
     } finally {
