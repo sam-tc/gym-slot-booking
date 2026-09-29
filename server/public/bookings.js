@@ -87,6 +87,17 @@ function renderBookings(bookings) {
                 </p>
 
                 ${
+                    booking.status === 'BOOKED' && booking.checkInCode
+                        ? `
+                            <p>
+                                Check-in code:
+                                <strong>${booking.checkInCode}</strong>
+                            </p>
+                        `
+                        : ''
+                }
+
+                ${
                     !isCancelled
                         ? `
                             <button
