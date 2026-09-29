@@ -74,9 +74,20 @@ router.get('/', requireAuth, async (req, res, next) => {
             .include('bookings')
             .all();
 
+        const upcomingSessions = sessions.filter(
+            (session) =>
+                Temporal.Instant.compare(
+                    Temporal.Now.instant(),
+                    session.startTime
+                ) < 0
+        );
+
         const filteredSessions = date
-            ? sessions.filter((session) => session.startTime.toString().startsWith(date))
-            : sessions;
+            ? upcomingSessions.filter(
+                (session) =>
+                    session.startTime.toString().startsWith(date)
+            )
+            : upcomingSessions;
 
         const result = filteredSessions.map((session) => {
             const bookedCount = session.bookings.filter(
