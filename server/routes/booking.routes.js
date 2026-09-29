@@ -10,11 +10,12 @@ const {
 const router = express.Router();
 
 function generateCheckInCode() {
-    return crypto
-        .randomBytes(4)
-        .toString('base64url')
-        .slice(0, 6)
-        .toUpperCase();
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const bytes = crypto.randomBytes(6);
+
+    return Array.from(bytes, (byte) =>
+        alphabet[byte % alphabet.length]
+    ).join('');
 }
 
 function hashCheckInCode(code) {
@@ -290,6 +291,9 @@ router.delete(
                         );
 
                     if (!alreadyBooked) {
+                        const promotedCheckInCode =
+                            generateCheckInCode();
+
                         const promoted =
                             await tx.orm.public.Booking.create({
                                 userId:
@@ -297,6 +301,8 @@ router.delete(
                                 sessionId:
                                     session.id,
                                 status: 'BOOKED',
+                                checkInCodeHash:
+                                    hashCheckInCode(promotedCheckInCode),
                             });
 
                         promotedBooking = {
@@ -382,7 +388,23 @@ router.get(
                         booking.sessionId
                 );
 
-                return {
+                let checkInCode = null;
+
+                if (
+                    booking.status === 'BOOKED' &&
+                    !booking.checkInCodeHash
+                ) {
+                    checkInCode = generateCheckInCode();
+
+                    await db.orm.public.Booking
+                        .where({ id: booking.id })
+                        .update({
+                            checkInCodeHash:
+                                hashCheckInCode(checkInCode),
+                        });
+                }
+
+                result.push({
                     id: booking.id,
                     sessionId:
                         booking.sessionId,
@@ -393,6 +415,7 @@ router.get(
                         booking.checkedInAt
                             ? booking.checkedInAt.toString()
                             : null,
+                    checkInCode,
                     session: session
                         ? {
                             id: session.id,
@@ -402,8 +425,8 @@ router.get(
                                 session.capacity,
                         }
                         : null,
-                };
-            });
+                });
+            }
 
             res.status(200).json({
                 bookings: result,
