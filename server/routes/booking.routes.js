@@ -408,10 +408,23 @@ router.get(
                         booking.sessionId
                 );
 
-                const checkInCode =
-                    booking.status === 'BOOKED'
-                        ? generateCheckInCode(booking.id)
-                        : null;
+                let checkInCode = null;
+
+                if (booking.status === 'BOOKED') {
+                    checkInCode =
+                        generateCheckInCode(booking.id);
+
+                    const expectedHash =
+                        hashCheckInCode(checkInCode);
+
+                    if (booking.checkInCodeHash !== expectedHash) {
+                        await db.orm.public.Booking
+                            .where({ id: booking.id })
+                            .update({
+                                checkInCodeHash: expectedHash,
+                            });
+                    }
+                }
 
                 result.push({
                     id: booking.id,
