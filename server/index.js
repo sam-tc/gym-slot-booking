@@ -3,6 +3,7 @@ const { getDb } = require('./db');
 const authRoutes = require('./routes/auth.routes');
 const userRoutes = require('./routes/user.routes');
 const sessionRoutes = require('./routes/session.routes');
+const bookingRoutes = require('./routes/booking.routes');
 
 const app = express();
 const PORT = 3000;
@@ -11,6 +12,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/sessions', sessionRoutes);
+app.use('/api/bookings', bookingRoutes);
 
 app.get('/', (req, res) => {
     res.json({ message: 'Gym Slot Booking API is running' });
