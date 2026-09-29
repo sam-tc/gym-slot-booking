@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Bookings</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header class="topbar">
+        <div>
+            <h1>My Bookings</h1>
+            <p>View and manage your gym bookings.</p>
+        </div>
+
+        <nav aria-label="Main navigation">
+            <a href="sessions.html">Sessions</a>
+            <a href="bookings.html">My Bookings</a>
+            <a id="adminLink" href="admin.html" class="hidden">Admin</a>
+            <button id="logoutButton" type="button">Logout</button>
+        </nav>
+    </header>
+
+    <main class="page-container">
+
+        <div
+            id="pageMessage"
+            class="form-message"
+            role="status"
+            aria-live="polite"
+        ></div>
+
+        <section
+            id="bookingsContainer"
+            class="session-grid"
+            aria-live="polite"
+        >
+            <p>Loading bookings...</p>
+        </section>
+
+    </main>
+
+    <script src="app.js"></script>
+    <script src="bookings.js"></script>
+</body>
+</html>
