@@ -4,12 +4,23 @@ if (!token) {
     window.location.href = 'index.html';
 }
 
-const sessionsContainer = document.getElementById('sessionsContainer');
-const pageMessage = document.getElementById('pageMessage');
-const dateFilter = document.getElementById('dateFilter');
-const clearDateButton = document.getElementById('clearDateButton');
-const logoutButton = document.getElementById('logoutButton');
-const adminLink = document.getElementById('adminLink');
+const sessionsContainer =
+    document.getElementById('sessionsContainer');
+
+const pageMessage =
+    document.getElementById('pageMessage');
+
+const dateFilter =
+    document.getElementById('dateFilter');
+
+const clearDateButton =
+    document.getElementById('clearDateButton');
+
+const logoutButton =
+    document.getElementById('logoutButton');
+
+const adminLink =
+    document.getElementById('adminLink');
 
 let currentSessions = [];
 let myBookings = [];
@@ -75,7 +86,8 @@ function getBookingForSession(sessionId) {
 
 function getWaitlistForSession(sessionId) {
     return myWaitlists.find(
-        (waitlist) => waitlist.sessionId === sessionId
+        (waitlist) =>
+            waitlist.sessionId === sessionId
     );
 }
 
@@ -84,84 +96,104 @@ function renderSessions() {
         sessionsContainer.innerHTML = `
             <div class="empty-state">
                 <h2>No sessions found</h2>
-                <p>There are no gym sessions for this date.</p>
+                <p>
+                    There are no upcoming gym sessions
+                    for this date.
+                </p>
             </div>
         `;
 
         return;
     }
 
-    sessionsContainer.innerHTML = currentSessions.map((session) => {
-        const booking = getBookingForSession(session.id);
-        const waitlist = getWaitlistForSession(session.id);
+    sessionsContainer.innerHTML =
+        currentSessions.map((session) => {
+            const booking =
+                getBookingForSession(session.id);
 
-        let action = '';
+            const waitlist =
+                getWaitlistForSession(session.id);
 
-        if (booking) {
-            action = `
-                <button class="secondary-button" disabled>
-                    Already booked
-                </button>
+            let action = '';
+
+            if (booking) {
+                action = `
+                    <button
+                        class="secondary-button"
+                        disabled
+                    >
+                        Already booked
+                    </button>
+                `;
+            } else if (waitlist) {
+                action = `
+                    <button
+                        class="secondary-button leave-waitlist-button"
+                        data-waitlist-id="${waitlist.id}"
+                    >
+                        Leave waitlist
+                    </button>
+                `;
+            } else if (session.seatsRemaining > 0) {
+                action = `
+                    <button
+                        class="primary-button book-button"
+                        data-session-id="${session.id}"
+                    >
+                        Book session
+                    </button>
+                `;
+            } else {
+                action = `
+                    <button
+                        class="primary-button waitlist-button"
+                        data-session-id="${session.id}"
+                    >
+                        Join waitlist
+                    </button>
+                `;
+            }
+
+            return `
+                <article class="session-card">
+                    <h2>
+                        ${formatDateTime(session.startTime)}
+                    </h2>
+
+                    <p>
+                        Capacity:
+                        <strong>
+                            ${session.capacity}
+                        </strong>
+                    </p>
+
+                    <p>
+                        Seats remaining:
+                        <strong>
+                            ${Math.max(
+                                0,
+                                session.seatsRemaining
+                            )}
+                        </strong>
+                    </p>
+
+                    ${action}
+
+                    <p
+                        id="session-message-${session.id}"
+                        class="form-message"
+                        role="status"
+                        aria-live="polite"
+                    ></p>
+                </article>
             `;
-        } else if (waitlist) {
-            action = `
-                <button
-                    class="secondary-button leave-waitlist-button"
-                    data-waitlist-id="${waitlist.id}"
-                >
-                    Leave waitlist
-                </button>
-            `;
-        } else if (session.seatsRemaining > 0) {
-            action = `
-                <button
-                    class="primary-button book-button"
-                    data-session-id="${session.id}"
-                >
-                    Book session
-                </button>
-            `;
-        } else {
-            action = `
-                <button
-                    class="primary-button waitlist-button"
-                    data-session-id="${session.id}"
-                >
-                    Join waitlist
-                </button>
-            `;
-        }
-
-        return `
-            <article class="session-card">
-                <h2>${formatDateTime(session.startTime)}</h2>
-
-                <p>
-                    Capacity:
-                    <strong>${session.capacity}</strong>
-                </p>
-
-                <p>
-                    Seats remaining:
-                    <strong>${session.seatsRemaining}</strong>
-                </p>
-
-                ${action}
-
-                <p
-                    id="session-message-${session.id}"
-                    class="form-message"
-                    role="status"
-                    aria-live="polite"
-                ></p>
-            </article>
-        `;
-    }).join('');
+        }).join('');
 }
 
 async function loadSessions() {
     try {
-        pageMessage.textContent = 'Loading sessions...';
+        pageMessage.textContent =
+            'Loading sessions...';
 
         const date = dateFilter.value;
 
@@ -169,7 +201,8 @@ async function loadSessions() {
             ? `/sessions?date=${encodeURIComponent(date)}`
             : '/sessions';
 
-        const data = await apiRequest(endpoint);
+        const data =
+            await apiRequest(endpoint);
 
         currentSessions = data.sessions;
 
@@ -179,7 +212,9 @@ async function loadSessions() {
     } catch (error) {
         console.error(error);
 
-        pageMessage.textContent = error.message;
+        pageMessage.textContent =
+            error.message;
+
         sessionsContainer.innerHTML = '';
     }
 }
@@ -194,52 +229,72 @@ async function refreshPage() {
         await loadSessions();
     } catch (error) {
         console.error(error);
-        pageMessage.textContent = error.message;
+
+        pageMessage.textContent =
+            error.message;
     }
 }
 
 async function bookSession(sessionId, button) {
-    const session = currentSessions.find(
-        (item) => item.id === sessionId
-    );
+    const session =
+        currentSessions.find(
+            (item) =>
+                item.id === sessionId
+        );
 
     if (!session) {
         return;
     }
 
-    const oldSeatsRemaining = session.seatsRemaining;
+    const oldSeatsRemaining =
+        session.seatsRemaining;
+
+    if (oldSeatsRemaining <= 0) {
+        return;
+    }
 
     // Optimistic update:
     // immediately show one fewer seat.
-    session.seatsRemaining -= 1;
+    session.seatsRemaining =
+        Math.max(
+            0,
+            session.seatsRemaining - 1
+        );
 
     button.disabled = true;
 
     renderSessions();
 
     try {
-        const data = await apiRequest('/bookings', {
-            method: 'POST',
-            body: JSON.stringify({
-                sessionId,
-            }),
-        });
+        const data =
+            await apiRequest('/bookings', {
+                method: 'POST',
+                body: JSON.stringify({
+                    sessionId,
+                }),
+            });
 
         await refreshPage();
 
         pageMessage.textContent =
             `Booking successful! Your check-in code is ${data.booking.checkInCode}`;
     } catch (error) {
-        // Roll back the optimistic update.
-        session.seatsRemaining = oldSeatsRemaining;
+        // Roll back the optimistic update
+        // if the server rejects the booking.
+        session.seatsRemaining =
+            oldSeatsRemaining;
 
         renderSessions();
 
-        pageMessage.textContent = error.message;
+        pageMessage.textContent =
+            error.message;
     }
 }
 
-async function joinWaitlist(sessionId, button) {
+async function joinWaitlist(
+    sessionId,
+    button
+) {
     button.disabled = true;
 
     try {
@@ -255,81 +310,120 @@ async function joinWaitlist(sessionId, button) {
         pageMessage.textContent =
             'You have been added to the waitlist.';
     } catch (error) {
+        console.error(error);
+
         button.disabled = false;
-        pageMessage.textContent = error.message;
+
+        pageMessage.textContent =
+            error.message;
     }
 }
 
-async function leaveWaitlist(waitlistId, button) {
+async function leaveWaitlist(
+    waitlistId,
+    button
+) {
     button.disabled = true;
 
     try {
-        await apiRequest(`/waitlist/${waitlistId}`, {
-            method: 'DELETE',
-        });
+        await apiRequest(
+            `/waitlist/${waitlistId}`,
+            {
+                method: 'DELETE',
+            }
+        );
 
         await refreshPage();
 
         pageMessage.textContent =
             'You have been removed from the waitlist.';
     } catch (error) {
+        console.error(error);
+
         button.disabled = false;
-        pageMessage.textContent = error.message;
+
+        pageMessage.textContent =
+            error.message;
     }
 }
 
-sessionsContainer.addEventListener('click', async (event) => {
-    const bookButton = event.target.closest('.book-button');
+sessionsContainer.addEventListener(
+    'click',
+    async (event) => {
+        const bookButton =
+            event.target.closest(
+                '.book-button'
+            );
 
-    if (bookButton) {
-        await bookSession(
-            bookButton.dataset.sessionId,
-            bookButton
-        );
+        if (bookButton) {
+            await bookSession(
+                bookButton.dataset.sessionId,
+                bookButton
+            );
 
-        return;
+            return;
+        }
+
+        const waitlistButton =
+            event.target.closest(
+                '.waitlist-button'
+            );
+
+        if (waitlistButton) {
+            await joinWaitlist(
+                waitlistButton.dataset.sessionId,
+                waitlistButton
+            );
+
+            return;
+        }
+
+        const leaveWaitlistButton =
+            event.target.closest(
+                '.leave-waitlist-button'
+            );
+
+        if (leaveWaitlistButton) {
+            await leaveWaitlist(
+                leaveWaitlistButton.dataset.waitlistId,
+                leaveWaitlistButton
+            );
+        }
     }
+);
 
-    const waitlistButton = event.target.closest('.waitlist-button');
+dateFilter.addEventListener(
+    'change',
+    loadSessions
+);
 
-    if (waitlistButton) {
-        await joinWaitlist(
-            waitlistButton.dataset.sessionId,
-            waitlistButton
-        );
-
-        return;
+clearDateButton.addEventListener(
+    'click',
+    () => {
+        dateFilter.value = '';
+        loadSessions();
     }
+);
 
-    const leaveWaitlistButton =
-        event.target.closest('.leave-waitlist-button');
-
-    if (leaveWaitlistButton) {
-        await leaveWaitlist(
-            leaveWaitlistButton.dataset.waitlistId,
-            leaveWaitlistButton
-        );
+logoutButton.addEventListener(
+    'click',
+    () => {
+        localStorage.removeItem('token');
+        window.location.href = 'index.html';
     }
-});
-
-dateFilter.addEventListener('change', loadSessions);
-
-clearDateButton.addEventListener('click', () => {
-    dateFilter.value = '';
-    loadSessions();
-});
-
-logoutButton.addEventListener('click', () => {
-    localStorage.removeItem('token');
-    window.location.href = 'index.html';
-});
+);
 
 async function startPage() {
     await loadCurrentUser();
+
     await refreshPage();
 
-    // Poll every 10 seconds so seat counts stay fresh.
-    setInterval(refreshPage, 10000);
+    // Refresh seat counts and waitlist state
+    // every 10 seconds.
+    setInterval(
+        refreshPage,
+        10000
+    );
 }
 
 startPage();
