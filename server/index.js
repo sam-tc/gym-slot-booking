@@ -35,6 +35,18 @@ app.get('/health/db', async (req, res, next) => {
     }
 });
 
+app.use((error, req, res, next) => {
+    console.error(error);
+
+    if (res.headersSent) {
+        return next(error);
+    }
+
+    res.status(500).json({
+        error: 'Internal server error',
+    });
+});
+
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });
