@@ -137,9 +137,6 @@ router.post(
                     };
                 }
 
-                const checkInCode =
-                    generateCheckInCode();
-
                 const booking =
                     await tx.orm.public.Booking.create({
                         userId: req.user.userId,
