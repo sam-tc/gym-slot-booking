@@ -66,8 +66,8 @@ if (authForm) {
             return;
         }
 
-        if (password.length < 8) {
-            passwordError.textContent = 'Password must be at least 8 characters.';
+        if (password.length < 8 || password.length > 72) {
+            passwordError.textContent = 'Password must be between 8 and 72 characters.';
             return;
         }
 
