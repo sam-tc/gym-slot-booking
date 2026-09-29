@@ -204,4 +204,45 @@ router.delete('/:bookingId', requireAuth, async (req, res, next) => {
     }
 });
 
+router.get('/mine', requireAuth, async (req, res, next) => {
+    try {
+        const db = await getDb();
+
+        const bookings = await db.orm.public.Booking
+            .where({
+                userId: req.user.userId,
+            })
+            .all();
+
+        const sessions = await db.orm.public.Session.all();
+
+        const result = bookings.map((booking) => {
+            const session = sessions.find(
+                (existingSession) =>
+                    existingSession.id === booking.sessionId
+            );
+
+            return {
+                id: booking.id,
+                sessionId: booking.sessionId,
+                status: booking.status,
+                createdAt: booking.createdAt.toString(),
+                session: session
+                    ? {
+                        id: session.id,
+                        startTime: session.startTime.toString(),
+                        capacity: session.capacity,
+                    }
+                    : null,
+            };
+        });
+
+        res.status(200).json({
+            bookings: result,
+        });
+    } catch (error) {
+        next(error);
+    }
+});
+
 module.exports = router;
