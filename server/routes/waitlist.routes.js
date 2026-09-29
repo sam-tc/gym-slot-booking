@@ -4,6 +4,29 @@ const { requireAuth } = require('../middleware/auth.middleware');
 
 const router = express.Router();
 
+router.get('/mine', requireAuth, async (req, res, next) => {
+    try {
+        const db = await getDb();
+
+        const waitlists = await db.orm.public.Waitlist
+            .where({
+                userId: req.user.userId,
+            })
+            .all();
+
+        res.status(200).json({
+            waitlists: waitlists.map((waitlist) => ({
+                id: waitlist.id,
+                userId: waitlist.userId,
+                sessionId: waitlist.sessionId,
+                createdAt: waitlist.createdAt.toString(),
+            })),
+        });
+    } catch (error) {
+        next(error);
+    }
+});
+
 router.post('/', requireAuth, async (req, res, next) => {
     try {
         const { sessionId } = req.body;

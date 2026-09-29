@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gym Sessions</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header class="topbar">
+        <div>
+            <h1>Gym Sessions</h1>
+            <p>Choose a session and book your gym slot.</p>
+        </div>
+
+        <nav aria-label="Main navigation">
+            <a href="sessions.html">Sessions</a>
+            <a href="bookings.html">My Bookings</a>
+            <a id="adminLink" href="admin.html" class="hidden">Admin</a>
+            <button id="logoutButton" type="button">Logout</button>
+        </nav>
+    </header>
+
+    <main class="page-container">
+
+        <section class="toolbar">
+            <div>
+                <label for="dateFilter">Filter by date</label>
+                <input
+                    id="dateFilter"
+                    type="date"
+                >
+            </div>
+
+            <button id="clearDateButton" type="button">
+                Show all dates
+            </button>
+        </section>
+
+        <div
+            id="pageMessage"
+            class="form-message"
+            role="status"
+            aria-live="polite"
+        ></div>
+
+        <section
+            id="sessionsContainer"
+            class="session-grid"
+            aria-live="polite"
+        >
+            <p>Loading sessions...</p>
+        </section>
+
+    </main>
+
+    <script src="app.js"></script>
+    <script src="sessions.js"></script>
+</body>
+</html>

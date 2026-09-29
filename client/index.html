@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gym Slot Booking</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="auth-page">
+        <section class="auth-card">
+            <h1>Gym Slot Booking</h1>
+            <p class="subtitle">Book your gym session without the queue.</p>
+
+            <div class="tabs">
+                <button id="loginTab" class="tab active" type="button">
+                    Login
+                </button>
+
+                <button id="registerTab" class="tab" type="button">
+                    Register
+                </button>
+            </div>
+
+            <form id="authForm">
+                <div id="nameField" class="form-group hidden">
+                    <label for="name">Name</label>
+                    <input
+                        id="name"
+                        name="name"
+                        type="text"
+                        autocomplete="name"
+                    >
+                    <small id="nameError" class="field-error"></small>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input
+                        id="email"
+                        name="email"
+                        type="email"
+                        autocomplete="email"
+                        required
+                    >
+                    <small id="emailError" class="field-error"></small>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input
+                        id="password"
+                        name="password"
+                        type="password"
+                        autocomplete="current-password"
+                        required
+                    >
+                    <small id="passwordError" class="field-error"></small>
+                </div>
+
+                <p id="formMessage" class="form-message"></p>
+
+                <button id="submitButton" class="primary-button" type="submit">
+                    Login
+                </button>
+            </form>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
