@@ -9,6 +9,15 @@ A small gym scheduling app with member booking, cancellation, waitlists, one-tim
 - Plain HTML, CSS, and browser JavaScript
 - JWT bearer authentication and bcrypt password hashes
 
+## Design note
+
+Stack: Express + PostgreSQL/Prisma + plain HTML/CSS/JS; JWT authenticates members and admins, while passwords are bcrypt hashes.
+Data model: User has many Bookings; Session has many Bookings; Waitlist links User and Session; Booking stores a one-time check-in hash and optional check-in time.
+The API enforces auth, role checks, ownership, server-side validation, capacity, cancellation, waitlist promotion, and check-in rules.
+The frontend uses protected pages, responsive cards, live status regions, optimistic booking with rollback, and 10-second seat refreshes.
+Accessibility: labelled inputs, keyboard-visible focus, readable text errors, native controls, and disabled buttons while requests are active.
+Assumptions: sessions are exactly one hour, start at minute 00, capacity is always 20, and a member may have one active booking per session.
+
 ## Run locally
 
 Requirements: Node.js 24, npm, and PostgreSQL. The server loads a Temporal polyfill for runtimes that do not provide the API globally.
@@ -38,7 +47,16 @@ Requirements: Node.js 24, npm, and PostgreSQL. The server loads a Temporal polyf
 
    It listens on `PORT` when provided, otherwise port `3000`. Open `http://localhost:3000` (or the configured port).
 
-The optional `seed/seed.js` script creates a demo admin, 21 demo members, two sessions, and sample bookings using fixed credentials. It has no npm script and should only be used against a disposable development database; do not use these credentials in a shared or production environment.
+The supported demo bootstrap creates one admin, 21 demo members, sessions across several upcoming days, one full session, and a waitlisted member. It is intended only for a disposable development/demo database.
+
+## Demo credentials
+
+These credentials are **development/demo credentials only** and must not be reused for production:
+
+- Admin: `admin@example.com` / `AdminDemo123!`
+- Member: `member1@example.com` / `MemberDemo123!`
+
+Run `npm run bootstrap:demo` after setting `ADMIN_EMAIL=admin@example.com`, `ADMIN_PASSWORD=AdminDemo123!`, and `ADMIN_NAME=Gym Admin` in your private `server/.env` to create the admin and demo data.
 
 ## Deploy a demo on Vercel
 
@@ -48,7 +66,7 @@ The app needs a PostgreSQL database hosted separately. Create one with a provide
 
 Vercel runs `prisma db init` during each deployment, which initializes a new database before the app receives requests. It is deliberately a build step instead of a server-start step, because Vercel functions can start more than once. After deploying, open the Vercel URL and check `/health/db` to confirm the API can reach the database.
 
-To create the administrator and two sample future sessions, run this once from a trusted computer with access to the same database. In `server/`, copy `.env.example` to `.env`, set `DATABASE_URL`, `ADMIN_NAME`, `ADMIN_EMAIL`, and a unique `ADMIN_PASSWORD` of at least 12 characters, then run `npm run bootstrap:demo`. Keep `.env` private; it is ignored by Git.
+To create the administrator, demo members, and sample sessions, run this once from a trusted computer with access to the same database. In `server/`, copy `.env.example` to `.env`, set `DATABASE_URL`, `ADMIN_NAME`, `ADMIN_EMAIL`, and a unique `ADMIN_PASSWORD` of at least 12 characters, then run `npm run bootstrap:demo`. Keep `.env` private; it is ignored by Git.
 
 ## Main flows
 
@@ -91,3 +109,10 @@ Review the generated migration files before applying them to a shared database.
 ## Verification
 
 Run the API and check-in regression tests with `cd server && npm test`. They exercise the HTTP routes with an isolated in-memory database fixture and do not write to PostgreSQL. A basic source check is `node --check` on the changed client and server JavaScript files; `npx prisma migration check` validates the committed migration graph without a database connection.
+
+## Assumptions
+
+- Sessions are exactly one hour and always start on the hour.
+- Capacity is fixed at 20; members can hold one active booking per session.
+- Admin accounts are provisioned directly in the database/demo bootstrap, never through public registration.
+- Check-in codes are valid only during their session hour and only once.
