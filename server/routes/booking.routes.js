@@ -252,6 +252,17 @@ router.delete(
                     };
                 }
 
+                const lockSession = db.raw.sql`
+                    SELECT "id"
+                    FROM "Session"
+                    WHERE "id" = ${session.id}
+                    FOR UPDATE
+                `.returnsRow({
+                    id: 'pg/uuid@1',
+                }).build();
+
+                await tx.query(lockSession);
+
                 if (
                     Temporal.Instant.compare(
                         Temporal.Now.instant(),
