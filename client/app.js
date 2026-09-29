@@ -1,4 +1,5 @@
-const API_URL = 'http://localhost:3000/api';
+// The API is served by this app, so deployments use their own origin.
+const API_URL = `${window.location.origin}/api`;
 
 const loginTab = document.getElementById('loginTab');
 const registerTab = document.getElementById('registerTab');

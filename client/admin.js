@@ -51,6 +51,18 @@ function formatDateTime(startTime) {
     });
 }
 
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (character) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    })[character]);
+}
+
+function localDateTimeToIso(value) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) throw new Error('Choose a valid session start time.');
+    return date.toISOString();
+}
+
 async function verifyAdmin() {
     try {
         const data = await apiRequest('/users/me');
@@ -135,7 +147,7 @@ async function createSession(event) {
         'Creating session...';
 
     try {
-        const isoStartTime = `${startTime}:00+05:30`;
+        const isoStartTime = localDateTimeToIso(startTime);
 
         pageMessage.textContent =
             'Creating session...';
@@ -202,7 +214,7 @@ async function loadSessionBookings(sessionId) {
                                 <strong>
                                     ${
                                         booking.user
-                                            ? booking.user.name
+                                            ? escapeHtml(booking.user.name)
                                             : 'Unknown member'
                                     }
                                 </strong>
@@ -210,7 +222,7 @@ async function loadSessionBookings(sessionId) {
                                 <span>
                                     ${
                                         booking.user
-                                            ? booking.user.email
+                                            ? escapeHtml(booking.user.email)
                                             : ''
                                     }
                                 </span>
@@ -265,14 +277,14 @@ async function checkInMember(event) {
             <p>
                 Member:
                 <strong>
-                    ${user ? user.name : 'Unknown member'}
+                    ${escapeHtml(user ? user.name : 'Unknown member')}
                 </strong>
             </p>
 
             <p>
                 Email:
                 <strong>
-                    ${user ? user.email : 'Unknown'}
+                    ${escapeHtml(user ? user.email : 'Unknown')}
                 </strong>
             </p>
 

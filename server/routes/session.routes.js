@@ -113,7 +113,7 @@ router.get(
         try {
             const db = await getDb();
 
-            const { date } = req.query;
+            const { date, from, to } = req.query;
 
             const sessions =
                 await db.orm.public.Session
@@ -129,14 +129,31 @@ router.get(
                         ) < 0
                 );
 
-            const filteredSessions = date
-                ? upcomingSessions.filter(
-                    (session) =>
-                        session.startTime
-                            .toString()
-                            .startsWith(date)
-                )
-                : upcomingSessions;
+            let filteredSessions = upcomingSessions;
+            if (from || to) {
+                if (typeof from !== 'string' || typeof to !== 'string') {
+                    return res.status(422).json({ error: 'Both from and to must be valid timestamps' });
+                }
+                let rangeStart;
+                let rangeEnd;
+                try {
+                    rangeStart = Temporal.Instant.from(from);
+                    rangeEnd = Temporal.Instant.from(to);
+                } catch (error) {
+                    return res.status(422).json({ error: 'Date range must contain valid timestamps' });
+                }
+                if (Temporal.Instant.compare(rangeStart, rangeEnd) >= 0) {
+                    return res.status(422).json({ error: 'Date range is invalid' });
+                }
+                filteredSessions = upcomingSessions.filter((session) =>
+                    Temporal.Instant.compare(session.startTime, rangeStart) >= 0 &&
+                    Temporal.Instant.compare(session.startTime, rangeEnd) < 0
+                );
+            } else if (date) {
+                filteredSessions = upcomingSessions.filter((session) =>
+                    session.startTime.toString().startsWith(date)
+                );
+            }
 
             const result =
                 filteredSessions.map((session) => {

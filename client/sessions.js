@@ -197,9 +197,17 @@ async function loadSessions() {
 
         const date = dateFilter.value;
 
-        const endpoint = date
-            ? `/sessions?date=${encodeURIComponent(date)}`
-            : '/sessions';
+        let endpoint = '/sessions';
+        if (date) {
+            const [year, month, day] = date.split('-').map(Number);
+            const start = new Date(year, month - 1, day);
+            const end = new Date(year, month - 1, day + 1);
+            const params = new URLSearchParams({
+                from: start.toISOString(),
+                to: end.toISOString(),
+            });
+            endpoint += `?${params}`;
+        }
 
         const data =
             await apiRequest(endpoint);
