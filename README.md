@@ -44,17 +44,17 @@ The optional `seed/seed.js` script creates a demo admin, 21 demo members, two se
 
 The app is configured for Vercel's Express support. The static website is in `server/public`, and `server/index.js` exports the Express app for Vercel Functions while still supporting `npm start` locally. In Vercel, import this GitHub repository and set **Root Directory** to `server`. Vercel serves `public/` through its CDN; Express serves the API. See [Vercel's Express guide](https://vercel.com/docs/frameworks/backend/express).
 
-The app needs a PostgreSQL database hosted separately. Create one with a provider such as [Neon](https://neon.tech/), then copy its pooled PostgreSQL connection string into Vercel as `DATABASE_URL`. Add `JWT_SECRET` as a long random secret, and set `ADMIN_NAME`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` (at least 12 characters). Keep these values private and use a unique admin password.
+The app needs a PostgreSQL database hosted separately. Create one with a provider such as [Neon](https://neon.tech/), then copy its pooled PostgreSQL connection string into Vercel as `DATABASE_URL`. Add `JWT_SECRET` as a long random secret. Keep both values private.
 
-Initialize the database once from a trusted computer with Node.js 24 and access to that database. In `server/`, set `DATABASE_URL` to the same pooled connection string and run:
+Initialize the database once from a trusted computer with Node.js 24 and access to that database. In `server/`, copy `.env.example` to `.env`, then set `DATABASE_URL`, `ADMIN_NAME`, `ADMIN_EMAIL`, and a unique `ADMIN_PASSWORD` of at least 12 characters in `.env`. Keep `.env` private; it is ignored by Git. Run:
 
 ```sh
 npm ci
 npx prisma db init --db "$DATABASE_URL"
-ADMIN_NAME="Gym Admin" ADMIN_EMAIL="you@example.com" ADMIN_PASSWORD="your-unique-password" npm run bootstrap:demo
+npm run bootstrap:demo
 ```
 
-Use the same admin values you added in Vercel. This creates the admin and two upcoming sessions. Do not run initialization on every server start: Vercel functions can start more than once. After connecting GitHub and deploying, open the Vercel URL and check `/health/db` to confirm the API can reach the database.
+This creates the admin and two upcoming sessions. Add the same pooled `DATABASE_URL` to Vercel, along with a long random `JWT_SECRET`, then deploy. Do not run initialization on every server start: Vercel functions can start more than once. After deploying, open the Vercel URL and check `/health/db` to confirm the API can reach the database.
 
 ## Main flows
 
