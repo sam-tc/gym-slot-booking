@@ -9,11 +9,20 @@ const {
 
 const router = express.Router();
 
-function generateCheckInCode() {
-    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    const bytes = crypto.randomBytes(6);
+function generateCheckInCode(bookingId) {
+    const secret = process.env.CHECK_IN_SECRET || process.env.JWT_SECRET;
 
-    return Array.from(bytes, (byte) =>
+    if (!secret) {
+        throw new Error('CHECK_IN_SECRET or JWT_SECRET is required');
+    }
+
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const digest = crypto
+        .createHmac('sha256', secret)
+        .update(bookingId)
+        .digest();
+
+    return Array.from(digest.subarray(0, 6), (byte) =>
         alphabet[byte % alphabet.length]
     ).join('');
 }
@@ -136,6 +145,14 @@ router.post(
                         userId: req.user.userId,
                         sessionId,
                         status: 'BOOKED',
+                    });
+
+                const checkInCode =
+                    generateCheckInCode(booking.id);
+
+                await tx.orm.public.Booking
+                    .where({ id: booking.id })
+                    .update({
                         checkInCodeHash:
                             hashCheckInCode(checkInCode),
                     });
@@ -291,9 +308,6 @@ router.delete(
                         );
 
                     if (!alreadyBooked) {
-                        const promotedCheckInCode =
-                            generateCheckInCode();
-
                         const promoted =
                             await tx.orm.public.Booking.create({
                                 userId:
@@ -301,6 +315,14 @@ router.delete(
                                 sessionId:
                                     session.id,
                                 status: 'BOOKED',
+                            });
+
+                        const promotedCheckInCode =
+                            generateCheckInCode(promoted.id);
+
+                        await tx.orm.public.Booking
+                            .where({ id: promoted.id })
+                            .update({
                                 checkInCodeHash:
                                     hashCheckInCode(promotedCheckInCode),
                             });
@@ -388,21 +410,10 @@ router.get(
                         booking.sessionId
                 );
 
-                let checkInCode = null;
-
-                if (
-                    booking.status === 'BOOKED' &&
-                    !booking.checkInCodeHash
-                ) {
-                    checkInCode = generateCheckInCode();
-
-                    await db.orm.public.Booking
-                        .where({ id: booking.id })
-                        .update({
-                            checkInCodeHash:
-                                hashCheckInCode(checkInCode),
-                        });
-                }
+                const checkInCode =
+                    booking.status === 'BOOKED'
+                        ? generateCheckInCode(booking.id)
+                        : null;
 
                 result.push({
                     id: booking.id,
