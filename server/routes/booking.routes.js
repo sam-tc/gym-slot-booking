@@ -149,6 +149,24 @@ router.delete('/:bookingId', requireAuth, async (req, res, next) => {
                 };
             }
 
+            const sessionLockPlan = db.raw.sql`
+                SELECT "id"
+                FROM "Session"
+                WHERE "id" = ${booking.sessionId}
+                FOR UPDATE
+            `.returnsRow({
+                id: 'pg/uuid@1',
+            }).build();
+
+            const lockedSessionRows = await tx.query(sessionLockPlan);
+
+            if (lockedSessionRows.length === 0) {
+                return {
+                    error: 'Session not found',
+                    status: 404,
+                };
+            }
+
             const sessions = await tx.orm.public.Session.all();
 
             const session = sessions.find(
@@ -163,10 +181,12 @@ router.delete('/:bookingId', requireAuth, async (req, res, next) => {
                 };
             }
 
-            if (Temporal.Instant.compare(
-                Temporal.Now.instant(),
-                session.startTime
-            ) >= 0) {
+            if (
+                Temporal.Instant.compare(
+                    Temporal.Now.instant(),
+                    session.startTime
+                ) >= 0
+            ) {
                 return {
                     error: 'Booking can only be cancelled before the session starts',
                     status: 409,
@@ -179,6 +199,42 @@ router.delete('/:bookingId', requireAuth, async (req, res, next) => {
                     status: 'CANCELLED',
                 });
 
+            const waitlists = await tx.orm.public.Waitlist.all();
+
+            const sessionWaitlists = waitlists
+                .filter(
+                    (waitlist) =>
+                        waitlist.sessionId === session.id
+                )
+                .sort(
+                    (a, b) =>
+                        a.createdAt.epochMilliseconds -
+                        b.createdAt.epochMilliseconds
+                );
+
+            let promotedBooking = null;
+
+            if (sessionWaitlists.length > 0) {
+                const firstWaitlist = sessionWaitlists[0];
+
+                const promoted = await tx.orm.public.Booking.create({
+                    userId: firstWaitlist.userId,
+                    sessionId: session.id,
+                    status: 'BOOKED',
+                });
+
+                await tx.orm.public.Waitlist
+                    .where({ id: firstWaitlist.id })
+                    .delete();
+
+                promotedBooking = {
+                    id: promoted.id,
+                    userId: promoted.userId,
+                    sessionId: promoted.sessionId,
+                    status: promoted.status,
+                };
+            }
+
             return {
                 booking: {
                     id: cancelledBooking.id,
@@ -186,6 +242,7 @@ router.delete('/:bookingId', requireAuth, async (req, res, next) => {
                     sessionId: cancelledBooking.sessionId,
                     status: cancelledBooking.status,
                 },
+                promotedBooking,
             };
         });
 
@@ -198,6 +255,7 @@ router.delete('/:bookingId', requireAuth, async (req, res, next) => {
         res.json({
             message: 'Booking cancelled',
             booking: result.booking,
+            promotedBooking: result.promotedBooking,
         });
     } catch (error) {
         next(error);
