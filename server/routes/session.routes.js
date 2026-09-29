@@ -33,11 +33,17 @@ router.get('/', requireAuth, async (req, res, next) => {
     try {
         const db = await getDb();
 
+        const { date } = req.query;
+
         const sessions = await db.orm.public.Session
             .include('bookings')
             .all();
 
-        const result = sessions.map((session) => {
+        const filteredSessions = date
+            ? sessions.filter((session) => session.startTime.toString().startsWith(date))
+            : sessions;
+
+        const result = filteredSessions.map((session) => {
             const bookedCount = session.bookings.filter(
                 (booking) => booking.status === 'BOOKED'
             ).length;
