@@ -50,3 +50,37 @@ class LoginRequest(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str
+
+
+class SessionCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    start_time: datetime
+
+    @field_validator("start_time")
+    @classmethod
+    def validate_start_time(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError(
+                "Start time must include a timezone"
+            )
+
+        if (
+            value.minute != 0
+            or value.second != 0
+            or value.microsecond != 0
+        ):
+            raise ValueError(
+                "Session must start exactly on the hour"
+            )
+
+        return value
+
+
+class SessionResponse(BaseModel):
+    id: int
+    start_time: datetime
+    capacity: int
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
