@@ -1,11 +1,24 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from database import get_db
-from dependencies import require_admin
-from models import GymSession, User
-from schemas import SessionCreate, SessionResponse
+from dependencies import require_admin, require_member
+from models import (
+    Booking,
+    BookingStatus,
+    GymSession,
+    User,
+)
+from schemas import (
+    BookingResponse,
+    SessionCreate,
+    SessionResponse,
+)
+from security import generate_check_in_code
 
 
 router = APIRouter(
@@ -45,3 +58,97 @@ def create_session(
     db.refresh(gym_session)
 
     return gym_session
+
+
+@router.post(
+    "/{session_id}/book",
+    response_model=BookingResponse,
+    status_code=status.HTTP_201_CREATED
+)
+def book_session(
+    session_id: int,
+    db: Session = Depends(get_db),
+    current_member: User = Depends(require_member)
+):
+    gym_session = db.scalar(
+        select(GymSession)
+        .where(GymSession.id == session_id)
+        .with_for_update()
+    )
+
+    if gym_session is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Session not found"
+        )
+
+    if gym_session.start_time <= datetime.now(timezone.utc):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This session has already started"
+        )
+
+    existing_booking = db.scalar(
+        select(Booking).where(
+            Booking.user_id == current_member.id,
+            Booking.session_id == session_id
+        )
+    )
+
+    if (
+        existing_booking
+        and existing_booking.status == BookingStatus.CONFIRMED
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="You already have a booking for this session"
+        )
+
+    confirmed_count = db.scalar(
+        select(func.count())
+        .select_from(Booking)
+        .where(
+            Booking.session_id == session_id,
+            Booking.status == BookingStatus.CONFIRMED
+        )
+    )
+
+    if confirmed_count >= gym_session.capacity:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Session is full"
+        )
+
+    check_in_code = generate_check_in_code()
+
+    if existing_booking:
+        existing_booking.status = BookingStatus.CONFIRMED
+        existing_booking.check_in_code = check_in_code
+        existing_booking.checked_in_at = None
+
+        booking = existing_booking
+
+    else:
+        booking = Booking(
+            user_id=current_member.id,
+            session_id=session_id,
+            status=BookingStatus.CONFIRMED,
+            check_in_code=check_in_code
+        )
+
+        db.add(booking)
+
+    try:
+        db.commit()
+
+    except IntegrityError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Booking could not be completed"
+        )
+
+    db.refresh(booking)
+
+    return booking

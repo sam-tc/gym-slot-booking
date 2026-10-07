@@ -84,3 +84,15 @@ class SessionResponse(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class BookingResponse(BaseModel):
+    id: int
+    session_id: int
+    status: str
+    check_in_code: str | None
+    checked_in_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)

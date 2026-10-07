@@ -7,6 +7,9 @@ from dotenv import load_dotenv
 from pwdlib import PasswordHash
 from jwt import InvalidTokenError
 
+import secrets
+import string
+
 
 load_dotenv()
 
@@ -60,3 +63,16 @@ def decode_access_token(token: str) -> int:
         raise InvalidTokenError("Token has no subject")
 
     return int(subject)
+
+
+CHECK_IN_ALPHABET = (
+    string.ascii_uppercase
+    + string.digits
+)
+
+
+def generate_check_in_code(length: int = 6) -> str:
+    return "".join(
+        secrets.choice(CHECK_IN_ALPHABET)
+        for _ in range(length)
+    )
