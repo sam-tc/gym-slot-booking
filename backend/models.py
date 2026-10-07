@@ -159,3 +159,35 @@ class Booking(Base):
         server_default=func.now(),
         onupdate=func.now()
     )
+
+
+class WaitlistEntry(Base):
+    __tablename__ = "waitlist"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "session_id",
+            name="uq_waitlist_user_session"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"),
+        nullable=False,
+        index=True
+    )
+
+    session_id: Mapped[int] = mapped_column(
+        ForeignKey("sessions.id"),
+        nullable=False,
+        index=True
+    )
+
+    joined_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now()
+    )
