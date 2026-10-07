@@ -103,3 +103,14 @@ class SessionListItem(BaseModel):
     start_time: datetime
     capacity: int
     seats_remaining: int
+
+
+class MyBookingResponse(BaseModel):
+    id: int
+    session_id: int
+    session_start_time: datetime
+    status: str
+    check_in_code: str | None
+    checked_in_at: datetime | None
+    created_at: datetime
+    updated_at: datetime

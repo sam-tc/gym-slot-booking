@@ -7,13 +7,53 @@ from sqlalchemy.orm import Session
 from database import get_db
 from dependencies import require_member
 from models import Booking, BookingStatus, GymSession, User
-from schemas import BookingResponse
+from schemas import BookingResponse, MyBookingResponse
 
 
 router = APIRouter(
     prefix="/bookings",
     tags=["Bookings"]
 )
+
+
+@router.get(
+    "/me",
+    response_model=list[MyBookingResponse]
+)
+def get_my_bookings(
+    db: Session = Depends(get_db),
+    current_member: User = Depends(require_member)
+):
+    rows = db.execute(
+        select(
+            Booking,
+            GymSession.start_time
+        )
+        .join(
+            GymSession,
+            GymSession.id == Booking.session_id
+        )
+        .where(
+            Booking.user_id == current_member.id
+        )
+        .order_by(
+            GymSession.start_time
+        )
+    ).all()
+
+    return [
+        {
+            "id": booking.id,
+            "session_id": booking.session_id,
+            "session_start_time": session_start_time,
+            "status": booking.status.value,
+            "check_in_code": booking.check_in_code,
+            "checked_in_at": booking.checked_in_at,
+            "created_at": booking.created_at,
+            "updated_at": booking.updated_at,
+        }
+        for booking, session_start_time in rows
+    ]
 
 
 @router.post(
