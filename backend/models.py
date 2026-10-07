@@ -5,6 +5,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     Enum as SQLEnum,
+    ForeignKey,
     Integer,
     String,
     UniqueConstraint,
@@ -18,6 +19,10 @@ from database import Base
 class UserRole(str, Enum):
     MEMBER = "member"
     ADMIN = "admin"
+
+class BookingStatus(str, Enum):
+    CONFIRMED = "confirmed"
+    CANCELLED = "cancelled"
 
 class User(Base):
     __tablename__ = "users"
@@ -92,4 +97,65 @@ class GymSession(Base):
         DateTime(timezone=True),
         nullable=False,
         server_default=func.now()
+    )
+
+
+class Booking(Base):
+    __tablename__ = "bookings"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "session_id",
+            name="uq_booking_user_session"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"),
+        nullable=False,
+        index=True
+    )
+
+    session_id: Mapped[int] = mapped_column(
+        ForeignKey("sessions.id"),
+        nullable=False,
+        index=True
+    )
+
+    status: Mapped[BookingStatus] = mapped_column(
+        SQLEnum(
+            BookingStatus,
+            name="booking_status",
+            values_callable=lambda enum_class: [
+                member.value for member in enum_class
+            ]
+        ),
+        nullable=False
+    )
+
+    check_in_code: Mapped[str | None] = mapped_column(
+        String(20),
+        unique=True,
+        nullable=True
+    )
+
+    checked_in_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now()
+    )
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now()
     )
