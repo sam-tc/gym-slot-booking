@@ -114,3 +114,11 @@ class MyBookingResponse(BaseModel):
     checked_in_at: datetime | None
     created_at: datetime
     updated_at: datetime
+
+
+class WaitlistResponse(BaseModel):
+    id: int
+    session_id: int
+    joined_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)

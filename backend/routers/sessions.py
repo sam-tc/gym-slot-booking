@@ -17,6 +17,7 @@ from models import (
     BookingStatus,
     GymSession,
     User,
+    WaitlistEntry,
 )
 from schemas import (
     BookingResponse,
@@ -222,6 +223,16 @@ def book_session(
         )
 
         db.add(booking)
+
+    waitlist_entry = db.scalar(
+        select(WaitlistEntry).where(
+            WaitlistEntry.user_id == current_member.id,
+            WaitlistEntry.session_id == session_id
+        )
+    )
+
+    if waitlist_entry is not None:
+        db.delete(waitlist_entry)
 
     try:
         db.commit()
