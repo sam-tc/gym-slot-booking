@@ -96,3 +96,10 @@ class BookingResponse(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class SessionListItem(BaseModel):
+    id: int
+    start_time: datetime
+    capacity: int
+    seats_remaining: int
