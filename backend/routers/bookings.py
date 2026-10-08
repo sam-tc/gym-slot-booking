@@ -15,7 +15,7 @@ from models import (
 )
 from schemas import BookingResponse, MyBookingResponse
 
-from security import generate_check_in_code
+from security import generate_unique_check_in_code
 
 
 router = APIRouter(
@@ -171,7 +171,7 @@ def cancel_booking(
             db.flush()
             continue
 
-        new_code = generate_check_in_code()
+        new_code = generate_unique_check_in_code(db)
 
         if promoted_booking is not None:
             # The member may have an old CANCELLED booking row.

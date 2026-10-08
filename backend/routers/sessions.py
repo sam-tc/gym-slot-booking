@@ -25,7 +25,7 @@ from schemas import (
     SessionListItem,
     SessionResponse,
 )
-from security import generate_check_in_code
+from security import generate_unique_check_in_code
 
 GYM_TIMEZONE = ZoneInfo("Asia/Kolkata")
 
@@ -75,6 +75,7 @@ def create_session(
 )
 def list_sessions(
     date: date | None = None,
+    include_full: bool = False,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -121,16 +122,14 @@ def list_sessions(
             GymSession.start_time < end_of_day
         )
 
-    statement = (
-        statement
-        .where(
+    if not include_full:
+        statement = statement.where(
             func.coalesce(
-                confirmed_counts.c.confirmed_count,
-                0
+                confirmed_counts.c.confirmed_count, 0
             ) < GymSession.capacity
         )
-        .order_by(GymSession.start_time)
-    )
+
+    statement = statement.order_by(GymSession.start_time)
 
     rows = db.execute(statement).all()
 
@@ -205,7 +204,7 @@ def book_session(
             detail="Session is full"
         )
 
-    check_in_code = generate_check_in_code()
+    check_in_code = generate_unique_check_in_code(db)
 
     if existing_booking:
         existing_booking.status = BookingStatus.CONFIRMED

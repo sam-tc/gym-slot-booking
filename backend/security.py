@@ -10,6 +10,11 @@ from jwt import InvalidTokenError
 import secrets
 import string
 
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from models import Booking
+
 
 load_dotenv()
 
@@ -75,4 +80,25 @@ def generate_check_in_code(length: int = 6) -> str:
     return "".join(
         secrets.choice(CHECK_IN_ALPHABET)
         for _ in range(length)
+    )
+
+
+def generate_unique_check_in_code(
+    db: Session,
+    length: int = 6
+) -> str:
+    for _ in range(10):
+        code = generate_check_in_code(length)
+
+        existing_code = db.scalar(
+            select(Booking.id).where(
+                Booking.check_in_code == code
+            )
+        )
+
+        if existing_code is None:
+            return code
+
+    raise RuntimeError(
+        "Could not generate a unique check-in code"
     )

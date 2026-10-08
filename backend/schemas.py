@@ -126,3 +126,17 @@ class WaitlistResponse(BaseModel):
 
 class CheckInRequest(BaseModel):
     code: str
+
+
+class AdminBookingResponse(BaseModel):
+    id: int
+    user_id: int
+    member_name: str
+    member_email: str
+    session_id: int
+    session_start_time: datetime
+    status: str
+    check_in_code: str | None
+    checked_in_at: datetime | None
+    created_at: datetime
+    updated_at: datetime

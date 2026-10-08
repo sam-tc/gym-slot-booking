@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -6,8 +6,8 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from dependencies import require_admin
-from models import Booking, BookingStatus, User
-from schemas import BookingResponse, CheckInRequest
+from models import Booking, BookingStatus, GymSession, User
+from schemas import AdminBookingResponse, CheckInRequest
 
 
 router = APIRouter(
@@ -18,7 +18,7 @@ router = APIRouter(
 
 @router.post(
     "/check-in",
-    response_model=BookingResponse
+    response_model=AdminBookingResponse
 )
 def check_in_member(
     data: CheckInRequest,
@@ -51,9 +51,107 @@ def check_in_member(
             detail="This check-in code has already been used"
         )
 
-    booking.checked_in_at = datetime.now(timezone.utc)
+    gym_session = db.scalar(
+        select(GymSession).where(
+            GymSession.id == booking.session_id
+        )
+    )
+
+    if gym_session is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Session not found"
+        )
+
+    now = datetime.now(timezone.utc)
+
+    session_end = gym_session.start_time + timedelta(hours=1)
+
+    if not (
+        gym_session.start_time <= now < session_end
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Check-in is only allowed during the session hour"
+        )
+
+    booking.checked_in_at = now
 
     db.commit()
     db.refresh(booking)
 
-    return booking
+    member = db.scalar(
+        select(User).where(
+            User.id == booking.user_id
+        )
+    )
+
+    return {
+        "id": booking.id,
+        "user_id": booking.user_id,
+        "member_name": member.name,
+        "member_email": member.email,
+        "session_id": booking.session_id,
+        "session_start_time": gym_session.start_time,
+        "status": booking.status.value,
+        "check_in_code": booking.check_in_code,
+        "checked_in_at": booking.checked_in_at,
+        "created_at": booking.created_at,
+        "updated_at": booking.updated_at,
+    }
+
+
+@router.get(
+    "/sessions/{session_id}/bookings",
+    response_model=list[AdminBookingResponse]
+)
+def get_session_bookings(
+    session_id: int,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin)
+):
+    gym_session = db.scalar(
+        select(GymSession).where(
+            GymSession.id == session_id
+        )
+    )
+
+    if gym_session is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Session not found"
+        )
+
+    rows = db.execute(
+        select(
+            Booking,
+            User
+        )
+        .join(
+            User,
+            User.id == Booking.user_id
+        )
+        .where(
+            Booking.session_id == session_id
+        )
+        .order_by(
+            Booking.created_at
+        )
+    ).all()
+
+    return [
+        {
+            "id": booking.id,
+            "user_id": user.id,
+            "member_name": user.name,
+            "member_email": user.email,
+            "session_id": booking.session_id,
+            "session_start_time": gym_session.start_time,
+            "status": booking.status.value,
+            "check_in_code": booking.check_in_code,
+            "checked_in_at": booking.checked_in_at,
+            "created_at": booking.created_at,
+            "updated_at": booking.updated_at,
+        }
+        for booking, user in rows
+    ]
