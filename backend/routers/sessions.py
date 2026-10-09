@@ -1,7 +1,13 @@
 from datetime import date, datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    HTTPException,
+    status,
+)
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -26,6 +32,7 @@ from schemas import (
     SessionResponse,
 )
 from security import generate_unique_check_in_code
+from realtime import queue_realtime_update
 
 GYM_TIMEZONE = ZoneInfo("Asia/Kolkata")
 
@@ -43,8 +50,9 @@ router = APIRouter(
 )
 def create_session(
     data: SessionCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin)
+    current_admin: User = Depends(require_admin),
 ):
     gym_session = GymSession(
         start_time=data.start_time,
@@ -65,6 +73,12 @@ def create_session(
         )
 
     db.refresh(gym_session)
+
+    queue_realtime_update(
+        background_tasks,
+        "sessions_changed",
+        gym_session.id,
+    )
 
     return gym_session
 
@@ -152,8 +166,9 @@ def list_sessions(
 )
 def book_session(
     session_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_member: User = Depends(require_member)
+    current_member: User = Depends(require_member),
 ):
     gym_session = db.scalar(
         select(GymSession)
@@ -245,5 +260,11 @@ def book_session(
         )
 
     db.refresh(booking)
+
+    queue_realtime_update(
+        background_tasks,
+        "session_changed",
+        session_id,
+    )
 
     return booking

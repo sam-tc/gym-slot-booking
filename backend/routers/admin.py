@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -8,6 +8,7 @@ from database import get_db
 from dependencies import require_admin
 from models import Booking, BookingStatus, GymSession, User
 from schemas import AdminBookingResponse, CheckInRequest
+from realtime import queue_realtime_update
 
 
 router = APIRouter(
@@ -22,8 +23,9 @@ router = APIRouter(
 )
 def check_in_member(
     data: CheckInRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin)
+    current_admin: User = Depends(require_admin),
 ):
     booking = db.scalar(
         select(Booking)
@@ -79,6 +81,12 @@ def check_in_member(
 
     db.commit()
     db.refresh(booking)
+
+    queue_realtime_update(
+        background_tasks,
+        "session_changed",
+        booking.session_id,
+    )
 
     member = db.scalar(
         select(User).where(

@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -16,6 +16,8 @@ from models import (
 from schemas import BookingResponse, MyBookingResponse
 
 from security import generate_unique_check_in_code
+
+from realtime import queue_realtime_update
 
 
 router = APIRouter(
@@ -70,6 +72,7 @@ def get_my_bookings(
 )
 def cancel_booking(
     booking_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_member: User = Depends(require_member)
 ):
@@ -196,5 +199,11 @@ def cancel_booking(
     # Cancellation + promotion happen together.
     db.commit()
     db.refresh(booking)
+
+    queue_realtime_update(
+        background_tasks,
+        "session_changed",
+        session_id,
+    )
 
     return booking

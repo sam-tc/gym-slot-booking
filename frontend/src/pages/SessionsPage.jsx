@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext'
 import { apiRequest } from '../services/api'
 
 import './SessionsPage.css'
+import useRealtime from '../hooks/useRealtime'
 
 
 function SessionsPage() {
@@ -100,6 +101,23 @@ function SessionsPage() {
     [isAdmin, token],
   )
 
+  useRealtime(
+    token,
+    (event) => {
+      if (
+        event.type ===
+          'session_changed' ||
+        event.type ===
+          'sessions_changed'
+      ) {
+        loadSessions()
+
+        if (!isAdmin) {
+          loadMemberState()
+        }
+      }
+    },
+  )
 
   useEffect(() => {
     loadSessions(true)

@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status, BackgroundTasks
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -15,6 +15,7 @@ from models import (
     WaitlistEntry,
 )
 from schemas import MyWaitlistResponse, WaitlistResponse
+from realtime import queue_realtime_update
 
 
 router = APIRouter(
@@ -35,8 +36,9 @@ member_waitlist_router = APIRouter(
 )
 def join_waitlist(
     session_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_member: User = Depends(require_member)
+    current_member: User = Depends(require_member),
 ):
     gym_session = db.scalar(
         select(GymSession)
@@ -117,6 +119,12 @@ def join_waitlist(
 
     db.refresh(waitlist_entry)
 
+    queue_realtime_update(
+        background_tasks,
+        "session_changed",
+        session_id,
+    )
+
     return waitlist_entry
 
 
@@ -126,8 +134,9 @@ def join_waitlist(
 )
 def leave_waitlist(
     session_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_member: User = Depends(require_member)
+    current_member: User = Depends(require_member),
 ):
     gym_session = db.scalar(
         select(GymSession)
@@ -156,6 +165,12 @@ def leave_waitlist(
 
     db.delete(waitlist_entry)
     db.commit()
+
+    queue_realtime_update(
+        background_tasks,
+        "session_changed",
+        session_id,
+    )
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
