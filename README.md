@@ -628,8 +628,8 @@ Server time remains authoritative for cancellation and check-in rules.
 Deployment links will be added after production deployment.
 
 ```text
-Frontend: <FRONTEND_DEPLOYMENT_URL>
-Backend:  <BACKEND_DEPLOYMENT_URL>
+Frontend: https://gym-slot-booking-web.vercel.app
+Backend:  https://gym-slot-booking-api-jynx.onrender.com
 ```
 
 ## Frontend production environment
