@@ -21,6 +21,9 @@ from routers.waitlist import (
 )
 from jwt import InvalidTokenError
 
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 
 app = FastAPI()
 
@@ -52,6 +55,18 @@ app.include_router(admin_router)
 def health_check():
     return {
         "status": "ok"
+    }
+
+
+@app.get("/time")
+def get_server_time():
+    now = datetime.now(
+        ZoneInfo("Asia/Kolkata")
+    )
+
+    return {
+        "current_time": now.isoformat(),
+        "timezone": "Asia/Kolkata",
     }
 
 

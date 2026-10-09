@@ -9,6 +9,8 @@ import { apiRequest } from '../services/api'
 
 import './AdminPage.css'
 
+import useRealtime from '../hooks/useRealtime'
+
 
 function AdminPage() {
   const { token } = useAuth()
@@ -38,13 +40,16 @@ function AdminPage() {
 
 
   const loadSessions = useCallback(
-    async () => {
-      setSessionsLoading(true)
+    async (showLoading = true) => {
+      if (showLoading) {
+        setSessionsLoading(true)
+      }
+
       setPageError('')
 
       try {
         const data = await apiRequest(
-          '/sessions?include_full=true',
+          '/admin/sessions',
           {},
           token,
         )
@@ -53,7 +58,9 @@ function AdminPage() {
       } catch (err) {
         setPageError(err.message)
       } finally {
-        setSessionsLoading(false)
+        if (showLoading) {
+          setSessionsLoading(false)
+        }
       }
     },
     [token],
@@ -61,13 +68,19 @@ function AdminPage() {
 
 
   const loadSessionBookings = useCallback(
-    async (sessionId) => {
+    async (
+      sessionId,
+      showLoading = true,
+    ) => {
       if (!sessionId) {
         setSessionBookings([])
         return
       }
 
-      setBookingsLoading(true)
+      if (showLoading) {
+        setBookingsLoading(true)
+      }
+
       setBookingError('')
 
       try {
@@ -81,7 +94,9 @@ function AdminPage() {
       } catch (err) {
         setBookingError(err.message)
       } finally {
-        setBookingsLoading(false)
+        if (showLoading) {
+          setBookingsLoading(false)
+        }
       }
     },
     [token],
@@ -103,6 +118,34 @@ function AdminPage() {
     selectedSessionId,
     loadSessionBookings,
   ])
+
+  useRealtime(
+    token,
+    (event) => {
+      if (
+        event.type === 'sessions_changed'
+      ) {
+        loadSessions(false)
+      }
+
+      if (
+        event.type === 'session_changed'
+      ) {
+        loadSessions(false)
+
+        if (
+          selectedSessionId &&
+          String(event.session_id) ===
+            String(selectedSessionId)
+        ) {
+          loadSessionBookings(
+            selectedSessionId,
+            false,
+          )
+        }
+      }
+    },
+  )
 
 
   function formatDateTime(startTimeValue) {

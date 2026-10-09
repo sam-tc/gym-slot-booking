@@ -7,26 +7,41 @@ import {
 import { useAuth } from '../context/AuthContext'
 import { apiRequest } from '../services/api'
 
+import useRealtime from '../hooks/useRealtime'
+import useServerClock from '../hooks/useServerClock'
+
 import './MyBookingsPage.css'
 
 
 function MyBookingsPage() {
   const { token } = useAuth()
 
+  const {
+    currentTime,
+    isSynced,
+  } = useServerClock(token)
+
   const [bookings, setBookings] = useState([])
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  const [pendingBookingId, setPendingBookingId] = useState(null)
+  const [pendingBookingId, setPendingBookingId] =
+    useState(null)
 
-  const [actionMessage, setActionMessage] = useState('')
-  const [actionError, setActionError] = useState('')
+  const [actionMessage, setActionMessage] =
+    useState('')
+
+  const [actionError, setActionError] =
+    useState('')
 
 
   const loadBookings = useCallback(
-    async () => {
-      setLoading(true)
+    async (showLoading = true) => {
+      if (showLoading) {
+        setLoading(true)
+      }
+
       setError('')
 
       try {
@@ -40,7 +55,9 @@ function MyBookingsPage() {
       } catch (err) {
         setError(err.message)
       } finally {
-        setLoading(false)
+        if (showLoading) {
+          setLoading(false)
+        }
       }
     },
     [token],
@@ -50,6 +67,30 @@ function MyBookingsPage() {
   useEffect(() => {
     loadBookings()
   }, [loadBookings])
+
+
+  /*
+    Re-fetch bookings whenever the backend
+    tells us a session has changed.
+
+    This means:
+    - cancellation updates
+    - automatic waitlist promotions
+    - admin check-ins
+    - other booking changes
+
+    can appear without manually refreshing.
+  */
+  useRealtime(
+    token,
+    (event) => {
+      if (
+        event.type === 'session_changed'
+      ) {
+        loadBookings(false)
+      }
+    },
+  )
 
 
   function formatDate(startTime) {
@@ -79,16 +120,51 @@ function MyBookingsPage() {
   }
 
 
-  function sessionHasStarted(startTime) {
-    return (
-      new Date(startTime).getTime() <=
-      Date.now()
-    )
+  function getSessionPhase(
+    sessionStartTime,
+  ) {
+    if (
+      !isSynced ||
+      !currentTime
+    ) {
+      return 'syncing'
+    }
+
+    const sessionStart =
+      new Date(
+        sessionStartTime,
+      ).getTime()
+
+    const sessionEnd =
+      sessionStart +
+      60 * 60 * 1000
+
+    const now =
+      currentTime.getTime()
+
+
+    if (now < sessionStart) {
+      return 'upcoming'
+    }
+
+
+    if (
+      now >= sessionStart &&
+      now < sessionEnd
+    ) {
+      return 'active'
+    }
+
+
+    return 'ended'
   }
 
 
   async function handleCancel(booking) {
-    setPendingBookingId(booking.id)
+    setPendingBookingId(
+      booking.id,
+    )
+
     setActionMessage('')
     setActionError('')
 
@@ -105,11 +181,17 @@ function MyBookingsPage() {
         'Booking cancelled successfully.',
       )
 
-      await loadBookings()
+      await loadBookings(false)
+
     } catch (err) {
-      setActionError(err.message)
+      setActionError(
+        err.message,
+      )
+
     } finally {
-      setPendingBookingId(null)
+      setPendingBookingId(
+        null,
+      )
     }
   }
 
@@ -118,6 +200,7 @@ function MyBookingsPage() {
     <main className="bookings-page">
 
       <section className="bookings-heading">
+
         <div>
           <p className="page-eyebrow">
             YOUR SCHEDULE
@@ -132,6 +215,7 @@ function MyBookingsPage() {
             check-in codes and booking history.
           </p>
         </div>
+
       </section>
 
 
@@ -181,11 +265,15 @@ function MyBookingsPage() {
             We couldn't load your bookings
           </h2>
 
-          <p>{error}</p>
+          <p>
+            {error}
+          </p>
 
           <button
             type="button"
-            onClick={loadBookings}
+            onClick={() =>
+              loadBookings()
+            }
           >
             Try again
           </button>
@@ -197,6 +285,7 @@ function MyBookingsPage() {
         !error &&
         bookings.length === 0 && (
           <div className="state-card">
+
             <h2>
               No bookings yet
             </h2>
@@ -205,6 +294,7 @@ function MyBookingsPage() {
               Book a session and it will
               appear here.
             </p>
+
           </div>
         )}
 
@@ -214,148 +304,259 @@ function MyBookingsPage() {
         bookings.length > 0 && (
           <div className="bookings-list">
 
-            {bookings.map((booking) => {
-              const confirmed =
-                booking.status === 'confirmed'
+            {bookings.map(
+              (booking) => {
 
-              const started =
-                sessionHasStarted(
-                  booking.session_start_time,
-                )
-
-              const canCancel =
-                confirmed && !started
-
-              const pending =
-                pendingBookingId === booking.id
+                const confirmed =
+                  booking.status ===
+                  'confirmed'
 
 
-              return (
-                <article
-                  className="booking-card"
-                  key={booking.id}
-                >
-
-                  <div className="booking-main">
-
-                    <div>
-                      <p className="booking-date">
-                        {formatDate(
-                          booking.session_start_time,
-                        )}
-                      </p>
-
-                      <h2>
-                        {formatTime(
-                          booking.session_start_time,
-                        )}
-                      </h2>
-                    </div>
+                const sessionPhase =
+                  getSessionPhase(
+                    booking
+                      .session_start_time,
+                  )
 
 
-                    <span
-                      className={
-                        confirmed
-                          ? 'booking-status confirmed'
-                          : 'booking-status cancelled'
-                      }
-                    >
-                      {confirmed
-                        ? 'Confirmed'
-                        : 'Cancelled'}
-                    </span>
-
-                  </div>
+                const canCancel =
+                  confirmed &&
+                  sessionPhase ===
+                    'upcoming'
 
 
-                  <div className="booking-details">
-
-                    <div className="booking-detail">
-                      <span>
-                        Session
-                      </span>
-
-                      <strong>
-                        #{booking.session_id}
-                      </strong>
-                    </div>
+                const pending =
+                  pendingBookingId ===
+                  booking.id
 
 
-                    <div className="booking-detail">
-                      <span>
-                        Duration
-                      </span>
-
-                      <strong>
-                        1 hour
-                      </strong>
-                    </div>
+                const checkedIn =
+                  Boolean(
+                    booking
+                      .checked_in_at,
+                  )
 
 
-                    <div className="booking-detail">
-                      <span>
-                        Check-in
-                      </span>
+                return (
+                  <article
+                    className="booking-card"
+                    key={booking.id}
+                  >
 
-                      {confirmed &&
-                      booking.check_in_code ? (
-                        <code className="checkin-code">
-                          {
-                            booking.check_in_code
-                          }
-                        </code>
-                      ) : (
-                        <strong className="muted-value">
-                          Not available
-                        </strong>
-                      )}
-                    </div>
+                    <div className="booking-main">
 
-                  </div>
+                      <div>
 
-
-                  <div className="booking-footer">
-
-                    <div>
-                      {booking.checked_in_at ? (
-                        <p className="checked-in-text">
-                          Checked in
+                        <p className="booking-date">
+                          {formatDate(
+                            booking
+                              .session_start_time,
+                          )}
                         </p>
-                      ) : confirmed ? (
-                        <p className="booking-note">
-                          Show your code to staff
-                          during the session.
-                        </p>
-                      ) : (
-                        <p className="booking-note">
-                          This booking was cancelled.
-                        </p>
-                      )}
-                    </div>
+
+                        <h2>
+                          {formatTime(
+                            booking
+                              .session_start_time,
+                          )}
+                        </h2>
+
+                      </div>
 
 
-                    {canCancel && (
-                      <button
-                        type="button"
-                        className="cancel-booking-button"
-                        disabled={
-                          pendingBookingId !== null
-                        }
-                        onClick={() =>
-                          handleCancel(booking)
+                      <span
+                        className={
+                          confirmed
+                            ? 'booking-status confirmed'
+                            : 'booking-status cancelled'
                         }
                       >
-                        {pending
-                          ? 'Cancelling...'
-                          : 'Cancel booking'}
-                      </button>
-                    )}
+                        {confirmed
+                          ? 'Confirmed'
+                          : 'Cancelled'}
+                      </span>
 
-                  </div>
+                    </div>
 
-                </article>
-              )
-            })}
+
+                    <div className="booking-details">
+
+                      <div className="booking-detail">
+
+                        <span>
+                          Session
+                        </span>
+
+                        <strong>
+                          #{booking.session_id}
+                        </strong>
+
+                      </div>
+
+
+                      <div className="booking-detail">
+
+                        <span>
+                          Duration
+                        </span>
+
+                        <strong>
+                          1 hour
+                        </strong>
+
+                      </div>
+
+
+                      <div className="booking-detail">
+
+                        <span>
+                          Check-in
+                        </span>
+
+
+                        {!confirmed && (
+                          <strong className="muted-value">
+                            Not available
+                          </strong>
+                        )}
+
+
+                        {confirmed &&
+                          sessionPhase ===
+                            'syncing' && (
+                            <strong className="muted-value">
+                              Syncing...
+                            </strong>
+                          )}
+
+
+                        {confirmed &&
+                          sessionPhase ===
+                            'ended' && (
+                            <strong className="muted-value">
+                              Expired
+                            </strong>
+                          )}
+
+
+                        {confirmed &&
+                          sessionPhase !==
+                            'ended' &&
+                          sessionPhase !==
+                            'syncing' &&
+                          booking
+                            .check_in_code && (
+                            <code className="checkin-code">
+                              {
+                                booking
+                                  .check_in_code
+                              }
+                            </code>
+                          )}
+
+                      </div>
+
+                    </div>
+
+
+                    <div className="booking-footer">
+
+                      <div>
+
+                        {!confirmed && (
+                          <p className="booking-note">
+                            This booking was
+                            cancelled.
+                          </p>
+                        )}
+
+
+                        {confirmed &&
+                          checkedIn && (
+                            <p className="checked-in-text">
+                              Checked in
+                            </p>
+                          )}
+
+
+                        {confirmed &&
+                          !checkedIn &&
+                          sessionPhase ===
+                            'syncing' && (
+                            <p className="booking-note">
+                              Syncing current
+                              session time...
+                            </p>
+                          )}
+
+
+                        {confirmed &&
+                          !checkedIn &&
+                          sessionPhase ===
+                            'upcoming' && (
+                            <p className="booking-note">
+                              Check-in opens at{' '}
+                              {formatTime(
+                                booking
+                                  .session_start_time,
+                              )}
+                              .
+                            </p>
+                          )}
+
+
+                        {confirmed &&
+                          !checkedIn &&
+                          sessionPhase ===
+                            'active' && (
+                            <p className="checked-in-text">
+                              Check-in available
+                              now — show your code
+                              to staff.
+                            </p>
+                          )}
+
+
+                        {confirmed &&
+                          !checkedIn &&
+                          sessionPhase ===
+                            'ended' && (
+                            <p className="booking-note">
+                              This session has
+                              ended. Check-in is
+                              no longer available.
+                            </p>
+                          )}
+
+                      </div>
+
+
+                      {canCancel && (
+                        <button
+                          type="button"
+                          className="cancel-booking-button"
+                          disabled={
+                            pendingBookingId !==
+                            null
+                          }
+                          onClick={() =>
+                            handleCancel(
+                              booking,
+                            )
+                          }
+                        >
+                          {pending
+                            ? 'Cancelling...'
+                            : 'Cancel booking'}
+                        </button>
+                      )}
+
+                    </div>
+
+                  </article>
+                )
+              },
+            )}
 
           </div>
         )}
