@@ -5,6 +5,7 @@ import {
 } from 'react-router-dom'
 
 import AdminRoute from './components/AdminRoute'
+import AppLayout from './components/AppLayout'
 import ProtectedRoute from './components/ProtectedRoute'
 
 import AdminPage from './pages/AdminPage'
@@ -16,6 +17,7 @@ import SessionsPage from './pages/SessionsPage'
 function App() {
   return (
     <Routes>
+
       <Route
         path="/"
         element={
@@ -26,37 +28,48 @@ function App() {
         }
       />
 
+
       <Route
         path="/auth"
         element={<AuthPage />}
       />
 
+
       <Route
         path="/sessions"
         element={
           <ProtectedRoute>
-            <SessionsPage />
+            <AppLayout>
+              <SessionsPage />
+            </AppLayout>
           </ProtectedRoute>
         }
       />
+
 
       <Route
         path="/bookings"
         element={
           <ProtectedRoute>
-            <MyBookingsPage />
+            <AppLayout>
+              <MyBookingsPage />
+            </AppLayout>
           </ProtectedRoute>
         }
       />
+
 
       <Route
         path="/admin"
         element={
           <AdminRoute>
-            <AdminPage />
+            <AppLayout>
+              <AdminPage />
+            </AppLayout>
           </AdminRoute>
         }
       />
+
 
       <Route
         path="*"
@@ -67,6 +80,7 @@ function App() {
           />
         }
       />
+
     </Routes>
   )
 }
