@@ -20,10 +20,18 @@ from security import (
 
 GYM_TIMEZONE = ZoneInfo("Asia/Kolkata")
 
-ADMIN_PASSWORD = "AdminTest123!"
-MEMBER_PASSWORD = "MemberTest123!"
-WAITLIST_PASSWORD = "Waitlist123!"
-FILLER_PASSWORD = "DemoMember123!"
+
+ADMIN_EMAIL = "riya.admin@example.com"
+ADMIN_PASSWORD = "RiyaAdmin#27"
+
+AARAV_EMAIL = "aarav.mehta@example.com"
+AARAV_PASSWORD = "AaravGym#41"
+
+NAINA_EMAIL = "naina.kapoor@example.com"
+NAINA_PASSWORD = "NainaFit#52"
+
+ISHITA_EMAIL = "ishita.verma@example.com"
+ISHITA_PASSWORD = "IshitaGym#63"
 
 
 def future_session_time(
@@ -79,86 +87,105 @@ def seed_database():
         db.flush()
 
 
-        print("Creating users...")
+        print("Creating demo users...")
+
 
         admin = User(
             name="Riya Malhotra",
-            email="riya.admin@example.com",
-            password_hash=hash_password(
-                ADMIN_PASSWORD
-            ),
+            email=ADMIN_EMAIL,
+            password_hash=
+                hash_password(ADMIN_PASSWORD),
             role=UserRole.ADMIN,
         )
 
-        member_one = User(
+
+        aarav = User(
             name="Aarav Mehta",
-            email="aarav.mehta@example.com",
-            password_hash=hash_password(
-                MEMBER_PASSWORD
-            ),
+            email=AARAV_EMAIL,
+            password_hash=
+                hash_password(AARAV_PASSWORD),
             role=UserRole.MEMBER,
         )
 
-        member_two = User(
+
+        naina = User(
             name="Naina Kapoor",
-            email="naina.kapoor@example.com",
-            password_hash=hash_password(
-                MEMBER_PASSWORD
-            ),
+            email=NAINA_EMAIL,
+            password_hash=
+                hash_password(NAINA_PASSWORD),
             role=UserRole.MEMBER,
         )
 
-        waitlist_member = User(
+
+        ishita = User(
             name="Ishita Verma",
-            email="ishita.verma@example.com",
-            password_hash=hash_password(
-                WAITLIST_PASSWORD
-            ),
+            email=ISHITA_EMAIL,
+            password_hash=
+                hash_password(ISHITA_PASSWORD),
             role=UserRole.MEMBER,
         )
 
 
-        filler_data = [
-            ("Kabir Sharma", "kabir.sharma"),
-            ("Ananya Rao", "ananya.rao"),
-            ("Vihaan Malhotra", "vihaan.malhotra"),
-            ("Meera Iyer", "meera.iyer"),
-            ("Arjun Khanna", "arjun.khanna"),
-            ("Sara Jain", "sara.jain"),
-            ("Rohan Gupta", "rohan.gupta"),
-            ("Kiara Bansal", "kiara.bansal"),
-            ("Dev Arora", "dev.arora"),
-            ("Aisha Sethi", "aisha.sethi"),
-            ("Aditya Nair", "aditya.nair"),
-            ("Tara Singhania", "tara.singhania"),
-            ("Reyansh Bose", "reyansh.bose"),
-            ("Myra Chawla", "myra.chawla"),
-            ("Kunal Joshi", "kunal.joshi"),
-            ("Avni Desai", "avni.desai"),
-            ("Dhruv Menon", "dhruv.menon"),
-            ("Siya Oberoi", "siya.oberoi"),
+        demo_members = [
+            aarav,
+            naina,
+            ishita,
         ]
 
 
-        filler_members = [
-            User(
+        filler_names = [
+            "Kabir Sharma",
+            "Ananya Rao",
+            "Vihaan Malhotra",
+            "Meera Iyer",
+            "Arjun Khanna",
+            "Sara Jain",
+            "Rohan Gupta",
+            "Kiara Bansal",
+            "Dev Arora",
+            "Aisha Sethi",
+            "Aditya Nair",
+            "Tara Singhania",
+            "Reyansh Bose",
+            "Myra Chawla",
+            "Kunal Joshi",
+            "Avni Desai",
+            "Dhruv Menon",
+            "Siya Oberoi",
+            "Yash Mehta",
+            "Priya Kapoor",
+        ]
+
+
+        filler_members = []
+
+        for index, name in enumerate(
+            filler_names,
+            start=1,
+        ):
+            email_name = (
+                name.lower()
+                .replace(" ", ".")
+            )
+
+            filler = User(
                 name=name,
-                email=f"{email}@example.com",
+                email=(
+                    f"{email_name}@example.com"
+                ),
                 password_hash=hash_password(
-                    FILLER_PASSWORD
+                    f"DemoGym{index:02d}!"
                 ),
                 role=UserRole.MEMBER,
             )
-            for name, email in filler_data
-        ]
+
+            filler_members.append(filler)
 
 
         db.add_all(
             [
                 admin,
-                member_one,
-                member_two,
-                waitlist_member,
+                *demo_members,
                 *filler_members,
             ]
         )
@@ -168,107 +195,124 @@ def seed_database():
 
         print("Creating sessions...")
 
-        morning_session = GymSession(
+
+        booked_session = GymSession(
             start_time=
                 future_session_time(1, 7),
             capacity=20,
         )
 
-        evening_session = GymSession(
+
+        cancelled_session = GymSession(
             start_time=
                 future_session_time(1, 18),
             capacity=20,
         )
 
-        second_day_session = GymSession(
+
+        open_session = GymSession(
             start_time=
                 future_session_time(2, 7),
             capacity=20,
         )
 
-        full_session = GymSession(
+
+        waitlisted_full_session = GymSession(
             start_time=
                 future_session_time(3, 18),
             capacity=20,
         )
 
-        empty_session = GymSession(
+
+        joinable_full_session = GymSession(
             start_time=
-                future_session_time(4, 19),
+                future_session_time(4, 18),
             capacity=20,
         )
 
 
         db.add_all(
             [
-                morning_session,
-                evening_session,
-                second_day_session,
-                full_session,
-                empty_session,
+                booked_session,
+                cancelled_session,
+                open_session,
+                waitlisted_full_session,
+                joinable_full_session,
             ]
         )
 
         db.flush()
 
 
-        print("Creating bookings...")
-
-        create_confirmed_booking(
-            db,
-            member_one,
-            morning_session,
-        )
-
-        create_confirmed_booking(
-            db,
-            member_two,
-            evening_session,
-        )
-
-        create_confirmed_booking(
-            db,
-            member_one,
-            second_day_session,
-        )
+        print("Creating member demo states...")
 
 
-        cancelled_booking = Booking(
-            user_id=member_two.id,
-            session_id=second_day_session.id,
-            status=BookingStatus.CANCELLED,
-            check_in_code=None,
-            checked_in_at=None,
-        )
-
-        db.add(cancelled_booking)
-        db.flush()
-
-
-        print("Creating full session...")
-
-        full_session_members = [
-            member_one,
-            member_two,
-            *filler_members,
-        ]
-
-        assert len(full_session_members) == 20
-
-        for member in full_session_members:
+        # Every demo member has a confirmed booking.
+        for member in demo_members:
             create_confirmed_booking(
                 db,
                 member,
-                full_session,
+                booked_session,
             )
 
 
-        db.add(
-            WaitlistEntry(
-                user_id=waitlist_member.id,
-                session_id=full_session.id,
+        # Every demo member also has a cancelled
+        # booking in another session.
+        for member in demo_members:
+            db.add(
+                Booking(
+                    user_id=member.id,
+                    session_id=
+                        cancelled_session.id,
+                    status=
+                        BookingStatus.CANCELLED,
+                    check_in_code=None,
+                    checked_in_at=None,
+                )
             )
-        )
+
+        db.flush()
+
+
+        print("Creating full sessions...")
+
+
+        # Both full sessions contain exactly
+        # 20 confirmed bookings.
+        for member in filler_members:
+            create_confirmed_booking(
+                db,
+                member,
+                waitlisted_full_session,
+            )
+
+            create_confirmed_booking(
+                db,
+                member,
+                joinable_full_session,
+            )
+
+
+        print("Creating waitlist states...")
+
+
+        # Every demo member is already waiting
+        # for this full session.
+        for member in demo_members:
+            db.add(
+                WaitlistEntry(
+                    user_id=member.id,
+                    session_id=
+                        waitlisted_full_session.id,
+                )
+            )
+
+
+        # Nobody is waitlisted on
+        # joinable_full_session.
+        #
+        # Therefore demo members will see
+        # "Join waitlist" there.
 
 
         db.commit()
@@ -280,36 +324,58 @@ def seed_database():
         print()
         print("ADMIN")
         print("Riya Malhotra")
-        print("riya.admin@example.com")
+        print(ADMIN_EMAIL)
         print(ADMIN_PASSWORD)
 
         print()
         print("MEMBER")
         print("Aarav Mehta")
-        print("aarav.mehta@example.com")
-        print(MEMBER_PASSWORD)
+        print(AARAV_EMAIL)
+        print(AARAV_PASSWORD)
 
         print()
         print("MEMBER")
         print("Naina Kapoor")
-        print("naina.kapoor@example.com")
-        print(MEMBER_PASSWORD)
+        print(NAINA_EMAIL)
+        print(NAINA_PASSWORD)
 
         print()
-        print("WAITLIST MEMBER")
+        print("MEMBER")
         print("Ishita Verma")
-        print("ishita.verma@example.com")
-        print(WAITLIST_PASSWORD)
+        print(ISHITA_EMAIL)
+        print(ISHITA_PASSWORD)
 
         print()
-        print("FULL SESSION")
-        print(full_session.start_time)
-        print("20/20 booked")
+        print("DEMO MEMBER STATES")
+        print(
+            booked_session.start_time,
+            "- Booked",
+        )
+        print(
+            cancelled_session.start_time,
+            "- Cancelled / can rebook",
+        )
+        print(
+            open_session.start_time,
+            "- Available to book",
+        )
+        print(
+            waitlisted_full_session.start_time,
+            "- Waitlisted",
+        )
+        print(
+            joinable_full_session.start_time,
+            "- Full / can join waitlist",
+        )
 
 
     except Exception:
         db.rollback()
-        print("Seed failed. Changes rolled back.")
+
+        print(
+            "Seed failed. Changes rolled back."
+        )
+
         raise
 
     finally:
