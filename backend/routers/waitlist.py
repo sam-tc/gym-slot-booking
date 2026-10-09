@@ -14,11 +14,16 @@ from models import (
     User,
     WaitlistEntry,
 )
-from schemas import WaitlistResponse
+from schemas import MyWaitlistResponse, WaitlistResponse
 
 
 router = APIRouter(
     prefix="/sessions",
+    tags=["Waitlist"]
+)
+
+member_waitlist_router = APIRouter(
+    prefix="/waitlist",
     tags=["Waitlist"]
 )
 
@@ -153,3 +158,39 @@ def leave_waitlist(
     db.commit()
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@member_waitlist_router.get(
+    "/me",
+    response_model=list[MyWaitlistResponse]
+)
+def get_my_waitlist(
+    db: Session = Depends(get_db),
+    current_member: User = Depends(require_member)
+):
+    rows = db.execute(
+        select(
+            WaitlistEntry,
+            GymSession.start_time
+        )
+        .join(
+            GymSession,
+            GymSession.id == WaitlistEntry.session_id
+        )
+        .where(
+            WaitlistEntry.user_id == current_member.id
+        )
+        .order_by(
+            GymSession.start_time
+        )
+    ).all()
+
+    return [
+        {
+            "id": waitlist_entry.id,
+            "session_id": waitlist_entry.session_id,
+            "session_start_time": session_start_time,
+            "joined_at": waitlist_entry.joined_at,
+        }
+        for waitlist_entry, session_start_time in rows
+    ]

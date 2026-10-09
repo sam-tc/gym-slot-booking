@@ -140,3 +140,10 @@ class AdminBookingResponse(BaseModel):
     checked_in_at: datetime | None
     created_at: datetime
     updated_at: datetime
+
+
+class MyWaitlistResponse(BaseModel):
+    id: int
+    session_id: int
+    session_start_time: datetime
+    joined_at: datetime
