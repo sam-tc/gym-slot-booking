@@ -1,4 +1,7 @@
-import { useState } from 'react'
+import {
+  useEffect,
+  useState,
+} from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { useAuth } from '../context/AuthContext'
@@ -23,6 +26,12 @@ function AuthPage() {
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
 
+  useEffect(() => {
+    document.title =
+      mode === 'login'
+        ? 'GymSlot | Login'
+        : 'GymSlot | Register'
+  }, [mode])
 
   function handleChange(event) {
     const { name, value } = event.target

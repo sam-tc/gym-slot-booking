@@ -36,6 +36,12 @@ function MyBookingsPage() {
     useState('')
 
 
+  useEffect(() => {
+    document.title =
+      'GymSlot | My Bookings'
+  }, [])
+  
+
   const loadBookings = useCallback(
     async (showLoading = true) => {
       if (showLoading) {

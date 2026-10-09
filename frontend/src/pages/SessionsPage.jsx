@@ -29,6 +29,11 @@ function SessionsPage() {
   const [actionError, setActionError] = useState('')
 
 
+  useEffect(() => {
+    document.title = 'GymSlot | Sessions'
+  }, [])
+  
+
   const loadSessions = useCallback(
     async (showMainLoader = false) => {
       if (showMainLoader) {

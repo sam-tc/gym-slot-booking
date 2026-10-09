@@ -39,6 +39,11 @@ function AdminPage() {
   const [checkInResult, setCheckInResult] = useState(null)
 
 
+  useEffect(() => {
+    document.title = 'GymSlot | Admin'
+  }, [])
+
+
   const loadSessions = useCallback(
     async (showLoading = true) => {
       if (showLoading) {
