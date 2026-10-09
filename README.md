@@ -172,6 +172,8 @@ python -m pip install -r requirements.txt
 
 ## 4. Environment variables
 
+### Backend
+
 Copy:
 
 ```text
@@ -184,9 +186,49 @@ to:
 backend/.env
 ```
 
-Then configure the required values such as the PostgreSQL database URL and JWT secret.
+Configure:
 
-The real `.env` file must never be committed to Git.
+```env
+DATABASE_URL=postgresql+psycopg://gym_app:YOUR_PASSWORD@localhost:5432/gym_slot_booking
+
+JWT_SECRET=replace-with-a-long-random-secret
+JWT_ALGORITHM=HS256
+JWT_EXPIRE_MINUTES=60
+
+FRONTEND_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+```
+
+`FRONTEND_ORIGINS` accepts comma-separated frontend origins.
+
+The real `backend/.env` file must never be committed to Git.
+
+### Frontend
+
+The frontend reads the backend address from:
+
+```env
+VITE_API_URL
+```
+
+For local development it automatically falls back to:
+
+```text
+http://127.0.0.1:8000
+```
+
+A sample configuration is included in:
+
+```text
+frontend/.env.example
+```
+
+For production:
+
+```env
+VITE_API_URL=https://your-production-api.example.com
+```
+
+The WebSocket URL is derived automatically from the same API URL.
 
 ---
 
@@ -212,13 +254,27 @@ python seed.py
 
 The seed script removes existing development data and creates clean demonstration data including:
 
-- an admin
-- normal members
+- one admin account
+- three main demo member accounts
+- realistic fictional member names and emails
 - sessions across several days
 - confirmed bookings
-- a cancelled booking
-- one completely full session
-- a member already on that session's waitlist
+- cancelled/rebookable bookings
+- an available session
+- a full session where demo members are already waitlisted
+- another full session that demo members can join
+
+Each main demo member can therefore demonstrate the important member states:
+
+```text
+Booked
+Cancelled / rebookable
+Book session
+Leave waitlist
+Join waitlist
+```
+
+Additional fictional members are created internally so the full sessions contain legitimate 20/20 confirmed bookings.
 
 All seeded sessions start exactly on the hour.
 
@@ -266,8 +322,7 @@ http://localhost:5173
 
 All accounts below are fictional test accounts.
 
-Each demo member has seeded examples of the major member states, including a confirmed booking, a cancelled/rebookable booking, an available session, a waitlisted session, and another full session that can be joined.
-
+Each demo member has seeded examples of the major member states, including a confirmed booking, a cancelled/rebookable booking, an available session, a waitlisted session, and another full session whose waitlist can be joined.
 
 ## Admin
 
@@ -293,7 +348,7 @@ Email: naina.kapoor@example.com
 Password: NainaFit#52
 ```
 
-## Waitlist Test Member
+## Member 3
 
 ```text
 Name: Ishita Verma
@@ -577,18 +632,30 @@ Frontend: <FRONTEND_DEPLOYMENT_URL>
 Backend:  <BACKEND_DEPLOYMENT_URL>
 ```
 
-Production configuration must use environment variables for secrets and database credentials.
+## Frontend production environment
 
-The frontend API/WebSocket URLs must point to the deployed backend.
-
-Secure production deployments should use:
-
-```text
-https://
-wss://
+```env
+VITE_API_URL=https://your-backend-domain
 ```
 
-instead of development HTTP/WebSocket URLs.
+## Backend production environment
+
+```env
+DATABASE_URL=<production-postgresql-url>
+JWT_SECRET=<secure-random-secret>
+JWT_ALGORITHM=HS256
+JWT_EXPIRE_MINUTES=60
+FRONTEND_ORIGINS=https://your-frontend-domain
+```
+
+Production secrets and database credentials must be configured through the hosting provider's environment-variable settings and must never be committed to the repository.
+
+Production communication uses:
+
+```text
+HTTPS → https://
+WebSockets → wss://
+```
 
 ---
 
