@@ -1,6 +1,6 @@
 # GymSlot
 
-GymSlot is a full-stack gym session booking system built for the BYTE Society Web Development recruitment task.
+GymSlot is a full-stack gym session booking system.
 
 Members can browse gym sessions, book and cancel slots, join waitlists for full sessions, and view their check-in codes.
 
@@ -283,6 +283,6 @@ https://gym-slot-booking-api-jynx.onrender.com/docs
 
 ## Author
 
-Saumya
+**Saumya**
 
-Built for the BYTE Society Web Development recruitment task.
+Built for the BYTE Society Web Development task.
