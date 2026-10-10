@@ -2,6 +2,7 @@ import {
   useEffect,
   useState,
 } from 'react'
+
 import { useNavigate } from 'react-router-dom'
 
 import { useAuth } from '../context/AuthContext'
@@ -26,12 +27,24 @@ function AuthPage() {
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
 
+  const [
+    verificationEmail,
+    setVerificationEmail,
+  ] = useState('')
+
+  const [
+    resendLoading,
+    setResendLoading,
+  ] = useState(false)
+
+
   useEffect(() => {
     document.title =
       mode === 'login'
         ? 'GymSlot | Login'
         : 'GymSlot | Register'
   }, [mode])
+
 
   function handleChange(event) {
     const { name, value } = event.target
@@ -69,7 +82,9 @@ function AuthPage() {
       mode === 'register' &&
       form.password.length < 8
     ) {
-      return 'Password must be at least 8 characters.'
+      return (
+        'Password must be at least 8 characters.'
+      )
     }
 
     return null
@@ -92,19 +107,38 @@ function AuthPage() {
 
     try {
       if (mode === 'login') {
-        const user = await login(
-          form.email,
-          form.password,
-        )
+        try {
+          const user = await login(
+            form.email,
+            form.password,
+          )
 
-        if (user.role === 'admin') {
-          navigate('/admin')
-        } else {
-          navigate('/sessions')
+          if (user.role === 'admin') {
+            navigate('/admin')
+          } else {
+            navigate('/sessions')
+          }
+
+          return
+        } catch (err) {
+          if (
+            err.message
+              .toLowerCase()
+              .includes('verify your email')
+          ) {
+            setVerificationEmail(
+              form.email.trim(),
+            )
+          }
+
+          throw err
         }
-
-        return
       }
+
+
+      const email = form.email
+        .trim()
+        .toLowerCase()
 
       await apiRequest(
         '/auth/register',
@@ -112,23 +146,25 @@ function AuthPage() {
           method: 'POST',
           body: JSON.stringify({
             name: form.name.trim(),
-            email: form.email.trim(),
+            email,
             password: form.password,
           }),
         },
       )
 
+      setVerificationEmail(email)
+
       setSuccess(
-        'Account created successfully. You can now log in.',
+        'Account created. We sent you a verification email. Verify your email before signing in.',
       )
 
       setMode('login')
 
-      setForm((current) => ({
-        ...current,
+      setForm({
         name: '',
+        email,
         password: '',
-      }))
+      })
     } catch (err) {
       setError(err.message)
     } finally {
@@ -137,10 +173,48 @@ function AuthPage() {
   }
 
 
+  async function resendVerification() {
+    const email =
+      verificationEmail ||
+      form.email.trim()
+
+    if (!email) {
+      setError(
+        'Enter your email address first.',
+      )
+      return
+    }
+
+    setResendLoading(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      const response = await apiRequest(
+        '/auth/resend-verification',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            email,
+          }),
+        },
+      )
+
+      setVerificationEmail(email)
+      setSuccess(response.message)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setResendLoading(false)
+    }
+  }
+
+
   function switchMode(nextMode) {
     setMode(nextMode)
     setError('')
     setSuccess('')
+    setVerificationEmail('')
 
     setForm({
       name: '',
@@ -179,6 +253,7 @@ function AuthPage() {
 
           <div className="hero-stat">
             <strong>20</strong>
+
             <span>
               members per session
             </span>
@@ -332,6 +407,21 @@ function AuthPage() {
                   ? 'Sign in'
                   : 'Create account'}
             </button>
+
+
+            {mode === 'login' &&
+              verificationEmail && (
+                <button
+                  className="verification-link-button"
+                  type="button"
+                  onClick={resendVerification}
+                  disabled={resendLoading}
+                >
+                  {resendLoading
+                    ? 'Sending...'
+                    : 'Resend verification email'}
+                </button>
+              )}
           </form>
 
 

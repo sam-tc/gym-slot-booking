@@ -30,6 +30,7 @@ class UserResponse(BaseModel):
     name: str
     email: EmailStr
     role: str
+    email_verified: bool
     created_at: datetime
 
     model_config = {
@@ -50,6 +51,27 @@ class LoginRequest(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str
+
+
+class VerifyEmailRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    token: str = Field(min_length=1)
+
+
+class ResendVerificationRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    email: EmailStr
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: EmailStr) -> str:
+        return str(value).lower()
+
+
+class MessageResponse(BaseModel):
+    message: str
 
 
 class SessionCreate(BaseModel):

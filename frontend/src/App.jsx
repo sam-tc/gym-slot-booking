@@ -12,6 +12,7 @@ import AdminPage from './pages/AdminPage'
 import AuthPage from './pages/AuthPage'
 import MyBookingsPage from './pages/MyBookingsPage'
 import SessionsPage from './pages/SessionsPage'
+import VerifyEmailPage from './pages/VerifyEmailPage'
 
 
 function App() {
@@ -32,6 +33,12 @@ function App() {
       <Route
         path="/auth"
         element={<AuthPage />}
+      />
+
+
+      <Route
+        path="/verify-email"
+        element={<VerifyEmailPage />}
       />
 
 

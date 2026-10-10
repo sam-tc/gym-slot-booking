@@ -2,6 +2,7 @@ from datetime import datetime
 from enum import Enum
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     DateTime,
     Enum as SQLEnum,
@@ -56,6 +57,13 @@ class User(Base):
         ),
         nullable=False,
         default=UserRole.MEMBER
+    )
+
+    email_verified: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="false",
     )
 
     created_at: Mapped[datetime] = mapped_column(

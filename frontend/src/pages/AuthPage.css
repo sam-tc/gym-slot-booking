@@ -328,3 +328,28 @@
     font-size: 2rem;
   }
 }
+
+.verification-link-button {
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px;
+
+  border: 0;
+  background: transparent;
+
+  color: #b7ff3c;
+
+  font: inherit;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.verification-link-button:hover {
+  text-decoration: underline;
+}
+
+.verification-link-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

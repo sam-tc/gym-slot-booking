@@ -15,7 +15,6 @@ from sqlalchemy.orm import Session
 
 from models import Booking
 
-
 load_dotenv()
 
 JWT_SECRET = os.getenv("JWT_SECRET")
@@ -102,3 +101,49 @@ def generate_unique_check_in_code(
     raise RuntimeError(
         "Could not generate a unique check-in code"
     )
+
+
+def create_email_verification_token(
+    user_id: int,
+    expires_minutes: int = 30,
+) -> str:
+    expires_at = (
+        datetime.now(timezone.utc)
+        + timedelta(minutes=expires_minutes)
+    )
+
+    payload = {
+        "sub": str(user_id),
+        "purpose": "verify_email",
+        "exp": expires_at,
+    }
+
+    return jwt.encode(
+        payload,
+        JWT_SECRET,
+        algorithm=JWT_ALGORITHM,
+    )
+
+
+def decode_email_verification_token(
+    token: str,
+) -> int:
+    payload = jwt.decode(
+        token,
+        JWT_SECRET,
+        algorithms=[JWT_ALGORITHM],
+    )
+
+    if payload.get("purpose") != "verify_email":
+        raise InvalidTokenError(
+            "Invalid token purpose"
+        )
+
+    subject = payload.get("sub")
+
+    if subject is None:
+        raise InvalidTokenError(
+            "Token has no subject"
+        )
+
+    return int(subject)

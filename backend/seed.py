@@ -96,6 +96,7 @@ def seed_database():
             password_hash=
                 hash_password(ADMIN_PASSWORD),
             role=UserRole.ADMIN,
+            email_verified=True,
         )
 
 
@@ -105,6 +106,7 @@ def seed_database():
             password_hash=
                 hash_password(AARAV_PASSWORD),
             role=UserRole.MEMBER,
+            email_verified=True,
         )
 
 
@@ -114,6 +116,7 @@ def seed_database():
             password_hash=
                 hash_password(NAINA_PASSWORD),
             role=UserRole.MEMBER,
+            email_verified=True,
         )
 
 
@@ -123,6 +126,7 @@ def seed_database():
             password_hash=
                 hash_password(ISHITA_PASSWORD),
             role=UserRole.MEMBER,
+            email_verified=True,
         )
 
 
@@ -177,6 +181,7 @@ def seed_database():
                     f"DemoGym{index:02d}!"
                 ),
                 role=UserRole.MEMBER,
+                email_verified=True,
             )
 
             filler_members.append(filler)
